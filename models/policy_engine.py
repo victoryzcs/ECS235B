@@ -1,14 +1,9 @@
 
 # Note "Double Check" place 
 from collections import UserDict
+import json
 import sys
 import os
-
-
-
-
-
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import conflict_class
 from models.access_matrix import AccessMatrix
@@ -281,6 +276,8 @@ class PolicyEngine:
                         user_permissions[obj_id]["permissions"].append(action)
         
         return user_permissions
+    def get_users(self):
+        return [user.to_dict() for user in self.users.values()]
 
 if __name__ == "__main__":
     pe = PolicyEngine()
