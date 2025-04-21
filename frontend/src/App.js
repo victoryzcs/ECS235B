@@ -1,23 +1,25 @@
 import logo from './logo.svg';
 import './App.css';
+import React, { useState } from 'react';
 
 function App() {
+
+
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <h1>ECS235B Final Project</h1>
+        <h2>Access Control System with Chinese Wall security policy</h2>
       </header>
+
+      <main className='App-main'>
+        <div className='lists-container'>
+          <div className='user-list' >
+            <h2 style={{ border: '2px solid red' }}>Users</h2>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
