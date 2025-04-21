@@ -395,3 +395,18 @@ if __name__ == "__main__":
 
     pe.revoke_direct_permission(user_id="sarah", object_id= obj1.id, action="delete")
     print(pe.user_check_permissions(user_id="sarah")) # Should have no permissions on any files
+    print()
+    print(pe.users)    
+
+    # remove role from user1 (Victor)
+    pe.remoke_role_from_user(user_id=user1.id, role_id=role2.id) 
+    print(pe.users.get(user1.id).roles) # Should be ['role1'] since user1 has not been assigned role2
+
+    pe.remoke_role_from_user(user_id=user1.id, role_id=role1.id)
+    print(pe.users.get(user1.id).roles) # Should be [] 
+
+    print()
+    print(pe.users.get(user1.id))
+    print(pe.user_check_permissions(user_id="user1")) 
+    
+    print(pe.grant_access(user_id=user1.id, object_id=obj1.id, action="read")) # Should be False
