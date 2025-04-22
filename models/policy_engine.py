@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import conflict_class
-from models.access_matrix import AccessMatrix
+from models.capability_lists import CapabilityList
 from models.conflict_class import ConflictClass
 from models.dataset import Dataset
 from models.object import Object
@@ -20,7 +20,7 @@ from typing import Tuple
 class PolicyEngine:
     
     def __init__(self, conflict_classes=None, datasets=None, objects=None):
-        self.acm = AccessMatrix()
+        self.caps = CapabilityList()
         self.roles = {}
         self.users = {}
         self.objects = {}
@@ -89,14 +89,14 @@ class PolicyEngine:
         if user_id not in self.users or object_id not in self.objects:
             raise ValueError("Invalid user or object ID")
         
-        self.acm.add_permission(user_id, object_id, action)
+        self.caps.add_permission(user_id, object_id, action)
         return True
     
     def revoke_direct_permission(self, user_id, object_id, action):
         if user_id not in self.users or object_id not in self.objects:
             raise ValueError("Invalid user or object ID")
     
-        self.acm.remove_permission(user_id, object_id, action)
+        self.caps.remove_permission(user_id, object_id, action)
         
         # Check if user still has this permission through roles
         rbac_allowed, _ = self._check_rbac(user_id, object_id, action)
@@ -173,17 +173,17 @@ class PolicyEngine:
     
         return False, "Permission denied"
     
-    def _check_acm(self, user_id, object_id, action):
-        if self.acm.check_permission(user_id, object_id, action):
-            return True, "Permission granted by ACM"
-        return False, "Permission denied by ACM"
+    def _check_caps(self, user_id, object_id, action):
+        if self.caps.check_permission(user_id, object_id, action):
+            return True, "Permission granted by caps"
+        return False, "Permission denied by caps"
     
     def check_access(self, user_id, object_id, action):
         '''
         Check if a user can access an object with a given action.
         1. Chinese Wall check
         2. RBAC check
-        3. ACM check
+        3. caps check
         Returns True if access is allowed, False otherwise.
         '''
         # Check Chinese Wall
@@ -196,10 +196,10 @@ class PolicyEngine:
         if rbac_allowed:
             return True, rbac_reason
     
-        # Check direct ACM permissions
-        acm_allowed, acm_reason = self._check_acm(user_id, object_id, action)
-        if acm_allowed:
-            return True, acm_reason
+        # Check direct caps permissions
+        caps_allowed, caps_reason = self._check_caps(user_id, object_id, action)
+        if caps_allowed:
+            return True, caps_reason
             
         return False, "No permission found"
     
@@ -262,10 +262,10 @@ class PolicyEngine:
                 if permission.action not in user_permissions[obj_id]["permissions"]:
                     user_permissions[obj_id]["permissions"].append(permission.action)
         
-        # Check direct permissions from ACM
+        # Check direct permissions from caps
         for obj_id in self.objects:
             for action in ["read", "write", "delete", "download", "execute"]:  # Common actions
-                if self.acm.check_permission(user_id, obj_id, action):
+                if self.caps.check_permission(user_id, obj_id, action):
                     if obj_id not in user_permissions:
                         user_permissions[obj_id] = {
                             "name": self.objects[obj_id].name,
@@ -349,7 +349,7 @@ if __name__ == "__main__":
     pe.grant_direct_permission(user1.id, obj1.id, "read")
     pe.grant_direct_permission(user2.id, obj2.id, "write")
     pe.grant_direct_permission(user3.id, obj3.id, "read")
-    print(pe.acm.matrix, end="\n\n")
+    print(pe.caps.matrix, end="\n\n")
 
     # Check access
     print(pe.check_access(user1.id, obj1.id, "read"))
@@ -381,7 +381,7 @@ if __name__ == "__main__":
     print(pe.users)
     print(pe.user_check_permissions(user_id="sarah"))
     
-    # ACM grant direct permission for user sarah
+    # caps grant direct permission for user sarah
     pe.grant_direct_permission(user_id="sarah", object_id=obj1.id, action="delete")
     print(pe.user_check_permissions(user_id="sarah"))
 

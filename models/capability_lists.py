@@ -1,6 +1,6 @@
 from typing import Dict, List, Set, Optional
 
-class AccessMatrix:
+class CapabilityList:
     
     def __init__(self):
         # Structure: {user_id: {object_id: set(permissions)}}
@@ -42,23 +42,23 @@ class AccessMatrix:
         return result
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'AccessMatrix':
-        acm = cls()
+    def from_dict(cls, data: Dict) -> 'CapabilityList':
+        caps = cls()
         for user_id, obj_dict in data.items():
             for obj_id, perms in obj_dict.items():
                 for perm in perms:
-                    acm.add_permission(user_id, obj_id, perm)
-        return acm
+                    caps.add_permission(user_id, obj_id, perm)
+        return caps
 
 if __name__ == "__main__":
-    acm = AccessMatrix()
-    acm.add_permission("user1", "object1", "read")
-    acm.add_permission("user1", "object1", "write")
-    acm.add_permission("user1", "object2", "read")
-    acm.add_permission("user2", "object1", "read")
-    print(acm.to_dict())
-    acm.remove_permission("user1", "object1", "read")
-    print(acm.to_dict())
-    print(acm.check_permission("user1", "object1", "read")) # False
-    print(acm.check_permission("user1", "object1", "write")) # True
-    print(AccessMatrix.from_dict(acm.to_dict()))
+    caps = CapabilityList()
+    caps.add_permission("user1", "object1", "read")
+    caps.add_permission("user1", "object1", "write")
+    caps.add_permission("user1", "object2", "read")
+    caps.add_permission("user2", "object1", "read")
+    print(caps.to_dict())
+    caps.remove_permission("user1", "object1", "read")
+    print(caps.to_dict())
+    print(caps.check_permission("user1", "object1", "read")) # False
+    print(caps.check_permission("user1", "object1", "write")) # True
+    print(CapabilityList.from_dict(caps.to_dict()))
