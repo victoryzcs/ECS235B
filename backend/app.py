@@ -67,6 +67,11 @@ def add_role():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/api/roles', methods=['GET'])
+def get_roles():
+    roles_dict = {role_id: role.__dict__ for role_id, role in policy_engine.roles.items()}
+    return jsonify(roles_dict)
+
 @app.route('/api/datasets', methods=['GET'])
 def get_datasets():
     datasets_dict = {dataset_id: dataset.__dict__ for dataset_id, dataset in policy_engine.datasets.items()}
