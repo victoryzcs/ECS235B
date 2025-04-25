@@ -217,20 +217,29 @@ class PolicyEngine:
         3. caps check
         Returns True if access is allowed, False otherwise.
         '''
-        # Check Chinese Wall
-        cw_allowed, cw_reason = self._check_chinese_wall(user_id, object_id)
-        if not cw_allowed:
-            return False, cw_reason
-    
-        # Check RBAC
-        rbac_allowed, rbac_reason = self._check_rbac(user_id, object_id, action)
-        if rbac_allowed:
-            return True, rbac_reason
-    
-        # Check direct caps permissions
-        caps_allowed, caps_reason = self._check_caps(user_id, object_id, action)
-        if caps_allowed:
-            return True, caps_reason
+        try:
+            # Check Chinese Wall
+            cw_allowed, cw_reason = self._check_chinese_wall(user_id, object_id)
+            if not cw_allowed:
+                return False, cw_reason
+        except Exception as e:
+            return False, str(e)
+        
+        try:
+            # Check RBAC
+            rbac_allowed, rbac_reason = self._check_rbac(user_id, object_id, action)
+            if rbac_allowed:
+                return True, rbac_reason
+        except Exception as e:
+            return False, str(e)
+        
+        try:
+            # Check direct caps permissions
+            caps_allowed, caps_reason = self._check_caps(user_id, object_id, action)
+            if caps_allowed:
+                return True, caps_reason
+        except Exception as e:
+            return False, str(e)
             
         return False, "No permission found"
     
