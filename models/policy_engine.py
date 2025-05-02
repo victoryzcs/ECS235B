@@ -300,7 +300,9 @@ class PolicyEngine:
         return user_permissions
     def get_users(self):
         return [user.to_dict() for user in self.users.values()]
-
+    def get_roles(self):
+        return [role.to_dict() for role in self.roles.values()]
+        
 if __name__ == "__main__":
     pe = PolicyEngine()
     
