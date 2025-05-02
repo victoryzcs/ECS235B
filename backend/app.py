@@ -73,8 +73,9 @@ def add_role():
 
 @app.route('/api/roles', methods=['GET'])
 def get_roles():
-    roles_dict = {role_id: role.__dict__ for role_id, role in policy_engine.roles.items()}
-    return jsonify(roles_dict)
+    roles = policy_engine.get_roles()
+    # roles_dict = {role_id: role.__dict__ for role_id, role in policy_engine.roles.items()}
+    return jsonify(roles)
 
 @app.route('/api/datasets', methods=['GET'])
 def get_datasets():
