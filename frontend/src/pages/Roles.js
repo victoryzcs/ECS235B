@@ -1,11 +1,12 @@
 import React from 'react';
-import RoleList from '../components/Roles/RoleList';
 import { useState, useEffect } from 'react';   
+import RoleCard from '../components/Roles/RoleCard';
 
 function Roles() {
   const [roles, setRoles] = useState([]);
   const [newRole, setNewRole] = useState({
-    name: '',
+    id: '',
+    name: ''
   });
   const API_URL = 'http://localhost:8080/api';
 
@@ -23,10 +24,32 @@ function Roles() {
     }
   };
 
+  const handleAddRole = async () => {
+    try {
+      const response = await fetch(`${API_URL}/roles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newRole),
+      });
+      const data = await response.json();
+      setRoles([...roles, data]);
+    } catch (error) {
+      console.error('Error adding role:', error);
+    }
+  }
+
+
   return (
     <div className="roles-page">
       <h1>Roles Management</h1>
-      <RoleList roles={roles}/>
+      <RoleCard 
+      roles={roles}
+      newRole={newRole}
+      setNewRole={setNewRole}
+      handleAddRole={handleAddRole}
+      />
     </div>
   );
 }

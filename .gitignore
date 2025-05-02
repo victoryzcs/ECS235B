@@ -8,3 +8,6 @@ test_models/run_api_tests.py
 test_models/test_api.py
 
 streamlit/
+
+.DS_Store
+
