@@ -3,7 +3,7 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from flask import Flask, request, jsonify
+from flask import Flask, Blueprint, request, jsonify
 from flask_cors import CORS
 from models.policy_engine import PolicyEngine
 from models.user import User
@@ -11,8 +11,12 @@ from models.object import Object
 from models.role import Role
 from models.dataset import Dataset
 from models.conflict_class import ConflictClass
+from backend.auth import auth
 
 app = Flask(__name__)
+general = Blueprint('app', __name__)
+app.register_blueprint(general)
+app.register_blueprint(auth)
 CORS(app, resources={r"/*": {"origins": "*"}})  
 
 policy_engine = PolicyEngine()
