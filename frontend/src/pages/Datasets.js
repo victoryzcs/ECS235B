@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, Alert, Snackbar } from '@mui/material';
-import RoleCard from '../components/Roles/RoleCard';
+import DatasetCard from '../components/Datasets/DatasetCard';
 
-function Roles() {
-  const [roles, setRoles] = useState([]);
-  const [newRole, setNewRole] = useState({
-    id: '',
-    name: ''
+function Datasets() {
+  const [datasets, setDatasets] = useState([]);
+  const [newDataset, setNewDataset] = useState({ 
+    id: '', 
+    name: '', 
+    description: '',
+    objects: []
   });
   const [notification, setNotification] = useState({
     open: false,
@@ -16,17 +18,17 @@ function Roles() {
   const API_URL = 'http://localhost:8080/api';
 
   useEffect(() => {
-    fetchRoles();
+    fetchDatasets();
   }, []);
 
-  const fetchRoles = async () => {
+  const fetchDatasets = async () => {
     try {
-      const response = await fetch(`${API_URL}/roles`);
+      const response = await fetch(`${API_URL}/datasets`);
       const data = await response.json();
-      setRoles(data);
+      setDatasets(Object.values(data));
     } catch (error) {
-      console.error('Error fetching roles:', error);
-      showNotification('Error fetching roles', 'error');
+      console.error('Error fetching datasets:', error);
+      showNotification('Error fetching datasets', 'error');
     }
   };
 
@@ -45,29 +47,30 @@ function Roles() {
     });
   };
 
-  const handleAddRole = async (e) => {
+  const handleAddDataset = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_URL}/roles`, {
+      const response = await fetch(`${API_URL}/datasets`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newRole),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: newDataset.id,
+          name: newDataset.name,
+          description: newDataset.description
+        })
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setRoles([...roles, data]);
-        setNewRole({ id: '', name: '' });
-        showNotification('Role added successfully');
+        setNewDataset({ id: '', name: '', description: '', objects: [] });
+        fetchDatasets();
+        showNotification('Dataset added successfully');
       } else {
         const errorData = await response.json();
-        showNotification(`Error: ${errorData.error || 'Failed to add role'}`, 'error');
+        showNotification(`Error: ${errorData.error || 'Failed to add dataset'}`, 'error');
       }
     } catch (error) {
-      console.error('Error adding role:', error);
-      showNotification('Failed to add role', 'error');
+      console.error('Error adding dataset:', error);
+      showNotification('Failed to add dataset', 'error');
     }
   };
 
@@ -75,18 +78,18 @@ function Roles() {
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Box mb={4}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Roles Management
+          Datasets Management
         </Typography>
         <Typography variant="body1" color="text.secondary" paragraph>
-          Create and manage roles for assigning to users.
+          Create and manage datasets for organizing objects.
         </Typography>
       </Box>
       
-      <RoleCard 
-        roles={roles}
-        newRole={newRole}
-        setNewRole={setNewRole}
-        handleAddRole={handleAddRole}
+      <DatasetCard 
+        datasets={datasets}
+        newDataset={newDataset}
+        setNewDataset={setNewDataset}
+        handleAddDataset={handleAddDataset}
       />
       
       <Snackbar 
@@ -107,4 +110,4 @@ function Roles() {
   );
 }
 
-export default Roles;
+export default Datasets;
