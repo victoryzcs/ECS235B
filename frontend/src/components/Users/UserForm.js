@@ -1,12 +1,55 @@
 import React, { useState, useEffect } from 'react';
+import {
+  TextField,
+  Button,
+  Grid,
+  Typography,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  FormHelperText,
+  Box,
+  Divider,
+  Paper,
+  Tabs,
+  Tab
+} from '@mui/material';
 
-function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole }) {
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`user-tabpanel-${index}`}
+      aria-labelledby={`user-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handleGrantPermission, users }) {
   const [roles, setRoles] = useState([]);
+  const [objects, setObjects] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [tabValue, setTabValue] = useState(0);
+  const [permissionData, setPermissionData] = useState({
+    userId: '',
+    objectId: '',
+    action: ''
+  });
   
   useEffect(() => {
     fetchRoles();
+    fetchObjects();
   }, []);
   
   const fetchRoles = async () => {
@@ -19,58 +62,220 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole }) {
     }
   };
 
+  const fetchObjects = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/objects');
+      const data = await response.json();
+      setObjects(Object.values(data));
+    } catch (error) {
+      console.error('Error fetching objects:', error);
+    }
+  };
+  
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
+  const handlePermissionChange = (e) => {
+    const { name, value } = e.target;
+    setPermissionData({
+      ...permissionData,
+      [name]: value
+    });
+  };
+
+  const handlePermissionSubmit = (e) => {
+    e.preventDefault();
+    handleGrantPermission(permissionData.userId, permissionData.objectId, permissionData.action);
+    setPermissionData({
+      userId: '',
+      objectId: '',
+      action: ''
+    });
+  };
+
   return (
-    <div>
-      <form onSubmit={handleAddUser} className='add-form'>
-        <input
-          type="text"
-          placeholder="User ID"
-          value={newUser.id}
-          onChange={e => setNewUser({...newUser, id: e.target.value})}
-          required
-        />
-        <input
-          type="text"
-          placeholder="User Name"
-          value={newUser.name}
-          onChange={e => setNewUser({...newUser, name: e.target.value})}
-          required
-        />
-        <button type="submit">Add User</button>
-      </form>
-      
-      <div className="assign-role-form">
-        <h3>Assign Role to User</h3>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          handleAssignRole(selectedUserId, selectedRole);
-        }}>
-          <select 
-            value={selectedUserId} 
-            onChange={e => setSelectedUserId(e.target.value)}
-            required
-          >
-            <option value="">Select User</option>
-            {newUser.users && newUser.users.map(user => (
-              <option key={user.id} value={user.id}>{user.id} - {user.name}</option>
-            ))}
-          </select>
-          
-          <select 
-            value={selectedRole} 
-            onChange={e => setSelectedRole(e.target.value)}
-            required
-          >
-            <option value="">Select Role</option>
-            {roles.map(role => (
-              <option key={role.id} value={role.id}>{role.id} - {role.name}</option>
-            ))}
-          </select>
-          
-          <button type="submit">Assign Role</button>
-        </form>
-      </div>
-    </div>
+    <Box sx={{ mt: 2 }}>
+      <Paper>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange} 
+          variant="fullWidth"
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          <Tab label="Add User" />
+          <Tab label="Assign Role" />
+          <Tab label="Grant Permission" />
+        </Tabs>
+        
+        <TabPanel value={tabValue} index={0}>
+          <form onSubmit={handleAddUser}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label="User ID"
+                  value={newUser.id}
+                  onChange={e => setNewUser({...newUser, id: e.target.value})}
+                  required
+                  variant="outlined"
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label="User Name"
+                  value={newUser.name}
+                  onChange={e => setNewUser({...newUser, name: e.target.value})}
+                  required
+                  variant="outlined"
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
+                <Button type="submit" variant="contained" color="primary">
+                  Add User
+                </Button>
+              </Grid>
+            </Grid>
+          </form>
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={1}>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleAssignRole(selectedUserId, selectedRole);
+            setSelectedUserId('');
+            setSelectedRole('');
+          }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth variant="outlined" margin="normal">
+                  <InputLabel>User</InputLabel>
+                  <Select
+                    value={selectedUserId}
+                    onChange={e => setSelectedUserId(e.target.value)}
+                    label="User"
+                    required
+                  >
+                    <MenuItem value="">
+                      <em>Select a user</em>
+                    </MenuItem>
+                    {users.map(user => (
+                      <MenuItem key={user.id} value={user.id}>
+                        {user.id} - {user.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>Select user to assign a role</FormHelperText>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth variant="outlined" margin="normal">
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={selectedRole}
+                    onChange={e => setSelectedRole(e.target.value)}
+                    label="Role"
+                    required
+                  >
+                    <MenuItem value="">
+                      <em>Select a role</em>
+                    </MenuItem>
+                    {roles.map(role => (
+                      <MenuItem key={role.id} value={role.id}>
+                        {role.id} - {role.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>Select role to assign</FormHelperText>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
+                <Button type="submit" variant="contained" color="primary">
+                  Assign Role
+                </Button>
+              </Grid>
+            </Grid>
+          </form>
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={2}>
+          <form onSubmit={handlePermissionSubmit}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth variant="outlined" margin="normal">
+                  <InputLabel>User</InputLabel>
+                  <Select
+                    name="userId"
+                    value={permissionData.userId}
+                    onChange={handlePermissionChange}
+                    label="User"
+                    required
+                  >
+                    <MenuItem value="">
+                      <em>Select a user</em>
+                    </MenuItem>
+                    {users.map(user => (
+                      <MenuItem key={user.id} value={user.id}>
+                        {user.id} - {user.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth variant="outlined" margin="normal">
+                  <InputLabel>Object</InputLabel>
+                  <Select
+                    name="objectId"
+                    value={permissionData.objectId}
+                    onChange={handlePermissionChange}
+                    label="Object"
+                    required
+                  >
+                    <MenuItem value="">
+                      <em>Select an object</em>
+                    </MenuItem>
+                    {objects.map(obj => (
+                      <MenuItem key={obj.id} value={obj.id}>
+                        {obj.id} - {obj.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth variant="outlined" margin="normal">
+                  <InputLabel>Action</InputLabel>
+                  <Select
+                    name="action"
+                    value={permissionData.action}
+                    onChange={handlePermissionChange}
+                    label="Action"
+                    required
+                  >
+                    <MenuItem value="">
+                      <em>Select an action</em>
+                    </MenuItem>
+                    <MenuItem value="read">Read</MenuItem>
+                    <MenuItem value="write">Write</MenuItem>
+                    <MenuItem value="execute">Execute</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
+                <Button type="submit" variant="contained" color="primary">
+                  Grant Permission
+                </Button>
+              </Grid>
+            </Grid>
+          </form>
+        </TabPanel>
+      </Paper>
+    </Box>
   );
 }
 
