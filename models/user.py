@@ -33,7 +33,7 @@ if __name__ == "__main__":
     user = User(
         id = "1",
         name = "John Doe",
-        roles = ["admin", "user"],
+        roles = ["worker"],
         access_history = ["APPLE", "NVIDIA", "TESLA"]
     )
 

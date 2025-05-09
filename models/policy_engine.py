@@ -2,7 +2,9 @@ from collections import UserDict
 import json
 import sys
 import os
+from this import d
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from backend.auth import hash_password
 from models.conflict_class import ConflictClass
 from models.capability_lists import CapabilityList
 from models.dataset import Dataset
@@ -11,6 +13,9 @@ from models.role import Role, Permission
 from models.user import User
 from models.database import Database
 from typing import Tuple, Dict, Any
+import jwt
+import datetime
+import bcrypt  
 
 class PolicyEngine:
     def __init__(self):
@@ -36,9 +41,11 @@ class PolicyEngine:
         for doc in self.db.get_all_documents('access_history'):
             self.user_access_history[doc['user_id']] = doc.get('accessed_datasets', [])
     
+
     def add_user(self, user: User):
         self.users[user.id] = user
-        self.db.save_document('users', {'_id': user.id, **user.to_dict()})
+        default_password = "password"
+        self.db.save_document('users', {'_id': user.id, **user.to_dict(), 'password': hash_password(default_password)})
     
     def add_role(self, role: Role):
         self.roles[role.id] = role
@@ -69,16 +76,24 @@ class PolicyEngine:
         
         if role_id not in self.users[user_id].roles:
             self.users[user_id].roles.append(role_id)
-            self.db.save_document('users', {'_id': user_id, **self.users[user_id].to_dict()})
+            
+            existing_user = self.db.get_document('users', user_id)
+            user_dict = self.users[user_id].to_dict()
+            
+            if existing_user and 'password' in existing_user:
+                user_dict['password'] = existing_user['password']
+                
+            self.db.save_document('users', {'_id': user_id, **user_dict})
     
     def grant_direct_permission(self, user_id: str, object_id: str, action: str):
-        if user_id not in self.users or object_id not in self.objects:
-            raise ValueError("Invalid user or object ID")
+        # if user_id not in self.users or object_id not in self.objects:
+        #     raise ValueError("Invalid user or object ID")
         
         self.caps.add_permission(user_id, object_id, action)
         self.db.save_document('capability_lists', {'_id': 'caps_matrix', 'matrix': self.caps.to_dict()})
         return True
     
+
     def record_access(self, user_id: str, object_id: str):
         if user_id not in self.users or object_id not in self.objects:
             raise ValueError("Invalid user or object ID")
@@ -286,7 +301,7 @@ class PolicyEngine:
         
         # Check direct permissions from caps
         for obj_id in self.objects:
-            for action in ["read", "write", "delete", "download", "execute"]:  # Common actions
+            for action in ["read", "write"]:  # Simplified to only read and write
                 if self.caps.check_permission(user_id, obj_id, action):
                     if obj_id not in user_permissions:
                         user_permissions[obj_id] = {
@@ -299,10 +314,38 @@ class PolicyEngine:
         
         return user_permissions
     def get_users(self):
+        users_data = self.db.get_all_documents('users')
+        self.users = {}
+        for doc in users_data:
+            try:
+                user = User.from_dict(doc)
+                self.users[user.id] = user
+            except Exception as e:
+                print(f"Error loading user {doc.get('_id', 'unknown')}: {str(e)}")
+        
         return [user.to_dict() for user in self.users.values()]
     def get_roles(self):
         return [role.to_dict() for role in self.roles.values()]
         
+    def get_conflict_datasets(self, conflict_class_id):
+
+        if not self.conflict_classes:
+            raise ValueError("No conflict classes found")
+        other_conflict_class = []
+        cc_list = []
+        # Find the conflict class with the given ID
+        for cc in self.conflict_classes:
+            ds = list(self.conflict_classes[cc].datasets)
+            if conflict_class_id in ds:
+                cleaned_ds = [d for d in ds if d != conflict_class_id] 
+                other_conflict_class.extend(cleaned_ds)
+                cc_list.append(cc)
+            else:
+                pass
+        print(other_conflict_class, "----")
+
+        return other_conflict_class, cc_list
+
 if __name__ == "__main__":
     pe = PolicyEngine()
     
