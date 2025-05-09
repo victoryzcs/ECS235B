@@ -1,130 +1,137 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  AppBar,
-  Toolbar,
-  Button,
-  Box,
-  Tabs,
-  Tab,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
+import { Button, Box, Typography } from '@mui/material';
 import './NevigationTabs.css';
+import { useAuth } from '../../contexts/AuthContext';
 
 function NevigationTabs() {
     const navigate = useNavigate();
     const location = useLocation();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const auth = useAuth();
     
-    // Function to check if a path is active
+    const currentUser = auth?.currentUser;
+    const logout = auth?.logout;
+    const isAdmin = auth?.isAdmin;
+    const isManager = auth?.isManager;
+    const isWorker = auth?.isWorker;
+    
     const isActive = (path) => location.pathname === path;
-    
-    // Calculate the current tab value based on path
-    const getTabValue = () => {
-      const pathMap = {
-        '/': 0,
-        '/users': 1,
-        '/roles': 2,
-        '/objects': 3,
-        '/datasets': 4, 
-        '/conflict-classes': 5
-      };
-      return pathMap[location.pathname] || 0;
-    };
-    
-    const handleChange = (event, newValue) => {
-      const valueMap = {
-        0: '/',
-        1: '/users',
-        2: '/roles',
-        3: '/objects',
-        4: '/datasets',
-        5: '/conflict-classes'
-      };
-      navigate(valueMap[newValue]);
+
+    const handleLogout = () => {
+        if (logout) {
+            logout();
+            navigate('/login');
+        }
     };
 
-    // For mobile view, render buttons
-    if (isMobile) {
-      return (
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar sx={{ flexWrap: 'wrap' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <Button 
-                color="inherit"
-                onClick={() => navigate('/')}
-                className={isActive('/') ? 'active-tab' : ''}
-                sx={{ my: 0.5 }}
-              >
-                Home
-              </Button>
-              <Button 
-                color="inherit" 
-                onClick={() => navigate('/users')}
-                className={isActive('/users') ? 'active-tab' : ''}
-                sx={{ my: 0.5 }}
-              >
-                Users
-              </Button>
-              <Button 
-                color="inherit" 
-                onClick={() => navigate('/roles')}
-                className={isActive('/roles') ? 'active-tab' : ''}
-                sx={{ my: 0.5 }}
-              >
-                Roles
-              </Button>
-              <Button 
-                color="inherit" 
-                onClick={() => navigate('/objects')}
-                className={isActive('/objects') ? 'active-tab' : ''}
-                sx={{ my: 0.5 }}
-              >
-                Objects
-              </Button>
-              <Button 
-                color="inherit" 
-                onClick={() => navigate('/datasets')}
-                className={isActive('/datasets') ? 'active-tab' : ''}
-                sx={{ my: 0.5 }}
-              >
-                Datasets
-              </Button>
-              <Button 
-                color="inherit" 
-                onClick={() => navigate('/conflict-classes')}
-                className={isActive('/conflict-classes') ? 'active-tab' : ''}
-                sx={{ my: 0.5 }}
-              >
-                Conflict Classes
-              </Button>
-            </Box>
-          </Toolbar>
-        </AppBar>
-      );
-    }
-
-    // For desktop view, render tabs
     return (
-        <AppBar position="static" color="default" elevation={1}>
-          <Tabs
-            value={getTabValue()}
-            onChange={handleChange}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
-            aria-label="navigation tabs"
-          >
-            <Tab label="Home" />
-            <Tab label="Users" />
-            <Tab label="Roles" />
-            <Tab label="Objects" />
-            <Tab label="Datasets" />
-            <Tab label="Conflict Classes" />
-          </Tabs>
-        </AppBar>
+        <div className="navigation-container">
+            <Box sx={{ display: 'flex', flexGrow: 1 }}>
+                <Button 
+                    variant='contained' 
+                    onClick={() => navigate('/')}
+                    className={isActive('/') ? 'active-tab' : ''}
+                >
+                    Home
+                </Button>
+                
+                {/* Admin has access to everything */}
+                {isAdmin && (
+                    <>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/users')}
+                            className={isActive('/users') ? 'active-tab' : ''}
+                        >
+                            Users
+                        </Button>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/roles')}
+                            className={isActive('/roles') ? 'active-tab' : ''}
+                        >
+                            Roles
+                        </Button>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/objects')}
+                            className={isActive('/objects') ? 'active-tab' : ''}
+                        >
+                            Objects
+                        </Button>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/datasets')}
+                            className={isActive('/datasets') ? 'active-tab' : ''}
+                        >
+                            Datasets
+                        </Button>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/conflict-classes')}
+                            className={isActive('/conflict-classes') ? 'active-tab' : ''}
+                        >
+                            Conflict Classes
+                        </Button>
+                    </>
+                )}
+                
+                {/* Manager-specific tabs */}
+                {isManager && !isAdmin && (
+                    <>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/users')}
+                            className={isActive('/users') ? 'active-tab' : ''}
+                        >
+                            Users
+                        </Button>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/objects')}
+                            className={isActive('/objects') ? 'active-tab' : ''}
+                        >
+                            Objects
+                        </Button>
+                        
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/datasets')}
+                            className={isActive('/datasets') ? 'active-tab' : ''}
+                        >
+                            Datasets
+                        </Button>
+                    </>
+                )}
+
+                {/* Worker-specific tabs - only show objects they can access */}
+                {!isManager && !isAdmin && (
+                    <>
+                        <Button 
+                            variant='contained' 
+                            onClick={() => navigate('/objects')}
+                            className={isActive('/objects') ? 'active-tab' : ''}
+                        >
+                            My Objects
+                        </Button>
+                        
+                    </>
+                )}
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ mr: 2 }}>
+                    {currentUser?.name} ({currentUser?.role})
+                </Typography>
+                <Button 
+                    variant='outlined' 
+                    color="secondary"
+                    onClick={handleLogout}
+                >
+                    Logout
+                </Button>
+            </Box>
+        </div>
     );
 }
 

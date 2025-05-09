@@ -15,6 +15,7 @@ import {
   Tabs,
   Tab
 } from '@mui/material';
+import { useAuth } from '../../contexts/AuthContext';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -46,6 +47,9 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
     objectId: '',
     action: ''
   });
+  
+  const auth = useAuth();
+  const isManager = auth?.isManager;
   
   useEffect(() => {
     fetchRoles();
@@ -85,7 +89,9 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
   };
 
   const handlePermissionSubmit = (e) => {
+
     e.preventDefault();
+    console.log('Permission Data:', permissionData);
     handleGrantPermission(permissionData.userId, permissionData.objectId, permissionData.action);
     setPermissionData({
       userId: '',
@@ -163,7 +169,14 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                     <MenuItem value="">
                       <em>Select a user</em>
                     </MenuItem>
-                    {users.map(user => (
+                    {users
+                    .filter(user => {
+                      if (isManager) {
+                        return user.id.toLowerCase()!=='admin' && !user.id.toLowerCase().startsWith("manager");
+                      }
+                      return true;
+                    })
+                    .map(user => (
                       <MenuItem key={user.id} value={user.id}>
                         {user.id} - {user.name}
                       </MenuItem>
@@ -184,7 +197,14 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                     <MenuItem value="">
                       <em>Select a role</em>
                     </MenuItem>
-                    {roles.map(role => (
+                    {roles
+                    .filter(role => {
+                      if (isManager) {
+                        return role.name.toLowerCase() !== 'manager' && role.name.toLowerCase() !== 'admin';
+                      }
+                      return true;
+                    })
+                    .map(role => (
                       <MenuItem key={role.id} value={role.id}>
                         {role.id} - {role.name}
                       </MenuItem>
@@ -224,11 +244,12 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                       </MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText>Select user for the permission</FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth variant="outlined" margin="normal">
-                  <InputLabel>Object</InputLabel>
+                  <InputLabel id='object-select-label'>Object</InputLabel>
                   <Select
                     name="objectId"
                     value={permissionData.objectId}
@@ -245,25 +266,29 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                       </MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText>Select object for the permission</FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth variant="outlined" margin="normal">
-                  <InputLabel>Action</InputLabel>
+                  <InputLabel id="action-select-label">Permission Action</InputLabel>
                   <Select
                     name="action"
                     value={permissionData.action}
                     onChange={handlePermissionChange}
-                    label="Action"
+                    label="Permission Action"
+                    labelId="action-select-label"
                     required
                   >
                     <MenuItem value="">
                       <em>Select an action</em>
                     </MenuItem>
                     <MenuItem value="read">Read</MenuItem>
-                    <MenuItem value="write">Write</MenuItem>
-                    <MenuItem value="execute">Execute</MenuItem>
+                    {!isManager && <MenuItem value="write">Write</MenuItem>}
                   </Select>
+                  <FormHelperText>
+                    {isManager ? "Managers can only grant read permissions to workers" : "Select the permission to grant"}
+                  </FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>

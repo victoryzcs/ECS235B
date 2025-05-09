@@ -60,4 +60,4 @@ Access is granted only if all applicable checks pass.
 - [ ] When a user signed up, the Users Management portal is not updated.
 - [ ] User's access history is not updated.
 - [ ] Conflict class doesn't work properly.
-
+    
