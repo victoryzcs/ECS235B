@@ -17,9 +17,46 @@ app = Flask(__name__)
 general = Blueprint('app', __name__)
 app.register_blueprint(general)
 app.register_blueprint(auth)
-CORS(app, resources={r"/*": {"origins": "*"}})  
+CORS(app)  
 
 policy_engine = PolicyEngine()
+
+
+PREDEFINED_ROLES = [
+    {"id": "admin", "name": "admin"},
+    {"id": "manager", "name": "manager"},
+    {"id": "worker", "name": "worker"}
+]
+
+def initialize_roles():
+    print("Initializing roles...")
+    
+    existing_roles = policy_engine.get_roles()
+    existing_role_ids = [role.get('id') for role in existing_roles]
+    
+    for role_data in PREDEFINED_ROLES:
+        if role_data['id'] not in existing_role_ids:
+            try:
+                role = Role(id=role_data['id'], name=role_data['name'])
+                policy_engine.add_role(role)
+                print(f"Added role: {role_data['name']}")
+            except Exception as e:
+                print(f"Error adding role {role_data['name']}: {str(e)}")
+    
+    predefined_role_ids = [role['id'] for role in PREDEFINED_ROLES]
+    for role in existing_roles:
+        if role.get('id') not in predefined_role_ids:
+            try:
+                policy_engine.remove_role(role.get('id'))
+                print(f"Removed extra role: {role.get('name')}")
+            except Exception as e:
+                print(f"Error removing role {role.get('name')}: {str(e)}")
+    
+    print("Role initialization complete.")
+
+initialize_roles()
+
+
 
 @app.route('/')
 def index():
@@ -156,7 +193,6 @@ def check_access():
     user_id = data.get('user_id')
     object_id = data.get('object_id')
     action = data.get('action')
-    
     if not all([user_id, object_id, action]):
         return jsonify({"error": "Missing required parameters"}), 400
     
@@ -168,6 +204,8 @@ def check_access():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+    
 
 @app.route('/api/grant_access', methods=['POST'])
 def grant_access():
@@ -197,6 +235,53 @@ def user_permissions(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-if __name__ == '__main__':
-    app.run(debug=True,  port=8080) 
+@app.route('/api/conflict_classes/<conflict_class_id>', methods=['GET'])
+def conflict_datasets(conflict_class_id):
+
+    try:
+        datasets = policy_engine.get_conflict_datasets(conflict_class_id)
+        return jsonify(datasets)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+
+def setup_predefined_roles():
+
+    from models.policy_engine import PolicyEngine
+    from models.role import Role, Permission
     
+    pe = PolicyEngine()
+    
+    existing_roles = pe.get_roles()
+    role_ids = [role.get('id') for role in existing_roles]
+    
+    if 'admin' not in role_ids:
+        admin_role = Role(id='admin', name='Administrator')
+        pe.add_role(admin_role)
+        
+        for obj_id in pe.objects:
+            pe.add_permission_to_role('admin', obj_id, 'read')
+            pe.add_permission_to_role('admin', obj_id, 'write')
+            pe.add_permission_to_role('admin', obj_id, 'delete')
+    
+    if 'manager' not in role_ids:
+        manager_role = Role(id='manager', name='Manager')
+        pe.add_role(manager_role)
+        
+        for dataset_id in pe.datasets:
+            for obj_id, obj in pe.objects.items():
+                if obj.dataset == dataset_id:
+                    pe.add_permission_to_role('manager', obj_id, 'read')
+    
+    if 'worker' not in role_ids:
+        worker_role = Role(id='worker', name='Worker')
+        pe.add_role(worker_role)
+    
+    print("Predefined roles have been set up.")
+
+
+
+if __name__ == "__main__":
+    setup_predefined_roles()
+    app.run(host='0.0.0.0', port=8080, debug=True)

@@ -18,7 +18,6 @@ function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddCon
     const {
       target: { value },
     } = event;
-    // On autofill we get a stringified value.
     setNewConflictClass({
       ...newConflictClass,
       datasets: typeof value === 'string' ? value.split(',') : value,
