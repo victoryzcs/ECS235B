@@ -2,7 +2,8 @@
 
 - [x] Implemented several components (for logic and backend)
 - [x] Implemented Flask backend
-- [ ] Add more test cases under `test_models` (especially for backend)
+- [x] Add more test cases under `test_models` (especially for backend)
+- [ ] Implement authentication modules (e.g., login, registration)
 - [ ] Create frontend (React)
 - [ ] Finalize and polish implementation  
 - [ ] Submit by deadline (June 6, 3:00 PM)
@@ -54,4 +55,9 @@ When a user attempts to access an object, the policy engine performs these check
 
 Access is granted only if all applicable checks pass.
 
+
+## Issues
+- [ ] When a user signed up, the Users Management portal is not updated.
+- [ ] User's access history is not updated.
+- [ ] Conflict class doesn't work properly.
 
