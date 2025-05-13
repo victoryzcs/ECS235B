@@ -328,7 +328,9 @@ class PolicyEngine:
         return [role.to_dict() for role in self.roles.values()]
         
     def get_conflict_datasets(self, conflict_class_id):
-
+        '''
+        Returns a list of datasets that are in the same conflict class as the given dataset.
+        '''
         if not self.conflict_classes:
             raise ValueError("No conflict classes found")
         other_conflict_class = []
@@ -337,7 +339,7 @@ class PolicyEngine:
         for cc in self.conflict_classes:
             ds = list(self.conflict_classes[cc].datasets)
             if conflict_class_id in ds:
-                cleaned_ds = [d for d in ds if d != conflict_class_id] 
+                cleaned_ds = [d for d in ds if d != conflict_class_id]
                 other_conflict_class.extend(cleaned_ds)
                 cc_list.append(cc)
             else:
@@ -345,6 +347,22 @@ class PolicyEngine:
         print(other_conflict_class, "----")
 
         return other_conflict_class, cc_list
+
+    def get_access_history(self, user_id):
+        """
+        Returns the access history for a given user.
+        """
+        if user_id not in self.users:
+            raise ValueError("Invalid user ID")
+
+        user = self.users[user_id]
+        return user.access_history
+
+    def user_check_conflict_classes(self, user_id):
+        """
+        Returns a list of conflict classes that the user belongs to.
+        """
+
 
 if __name__ == "__main__":
     pe = PolicyEngine()

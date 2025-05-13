@@ -129,8 +129,10 @@ function Datasets() {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_URL}/conflict_datasets/${datasetId}`, {
+      const response = await fetch(`${API_URL}/conflict_classes/${datasetId}`, {
+        method: 'GET',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         }
       });
@@ -200,7 +202,7 @@ function Datasets() {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_URL}/conflict_classes`, {
+      const response = await fetch(`${API_URL}/have_conflict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,9 +210,11 @@ function Datasets() {
         },
         body: JSON.stringify({
           user_id: currentUser?.id,
-          dataset_id: datasetId
+          dataset_id: datasetId,
+          // action: 'read'
         })
       });
+      console.log(response)
       
       const data = await response.json();
       return data.has_conflict === true;

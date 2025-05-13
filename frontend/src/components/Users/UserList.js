@@ -7,7 +7,9 @@ import {
   TableHead, 
   TableRow, 
   Paper, 
-  Chip 
+  Chip,
+  Box,
+  Tooltip
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -33,6 +35,7 @@ function UserList({ users }) {
             <TableCell><strong>ID</strong></TableCell>
             <TableCell><strong>Name</strong></TableCell>
             <TableCell><strong>Role</strong></TableCell>
+            <TableCell><strong>Access History</strong></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -49,6 +52,23 @@ function UserList({ users }) {
                   />
                 ) : (
                   'No role assigned'
+                )}
+              </TableCell>
+              <TableCell>
+                {user.access_history && user.access_history.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {user.access_history.map((datasetId, index) => (
+                      <Tooltip key={index} title={`Dataset: ${datasetId}`} arrow>
+                        <Chip 
+                          label={datasetId} 
+                          size="small" 
+                          sx={{ margin: '2px', background: '#e3f2fd' }} 
+                        />
+                      </Tooltip>
+                    ))}
+                  </Box>
+                ) : (
+                  'No access history'
                 )}
               </TableCell>
             </TableRow>

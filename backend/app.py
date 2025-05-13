@@ -148,6 +148,8 @@ def add_conflict_class():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+
+
 @app.route('/api/assign_role', methods=['POST'])
 def assign_role():
     data = request.json
@@ -237,7 +239,6 @@ def user_permissions(user_id):
 
 @app.route('/api/conflict_classes/<conflict_class_id>', methods=['GET'])
 def conflict_datasets(conflict_class_id):
-
     try:
         datasets = policy_engine.get_conflict_datasets(conflict_class_id)
         return jsonify(datasets)
