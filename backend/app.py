@@ -5,11 +5,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from flask import Flask, Blueprint, request, jsonify
 from flask_cors import CORS
 from models.policy_engine import PolicyEngine
-from models.user import User
 from models.object import Object as PolicyObject
 from models.role import Role
-from models.dataset import Dataset
-from models.conflict_class import ConflictClass
 from backend.auth import auth, ensure_admin_exists
 
 app = Flask(__name__)
@@ -339,6 +336,7 @@ def initialize_system():
                 print(f"Error adding predefined role {role_data['name']}: {str(e)}")
     print("System initialization complete.")
 
+initialize_system()
 
 @app.route('/')
 def index():
@@ -346,4 +344,4 @@ def index():
 
 if __name__ == "__main__":
     print("Starting Flask application...")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=False)

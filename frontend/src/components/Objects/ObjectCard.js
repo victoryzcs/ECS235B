@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import ObjectList from './ObjectList';
 import ObjectForm from './ObjectForm';
 import { Card, CardContent, Typography, Divider } from '@mui/material';
@@ -41,5 +42,17 @@ function ObjectCard({
     </Card>
   );
 }
+
+ObjectCard.propTypes = {
+  objects: PropTypes.array.isRequired,
+  objectData: PropTypes.object.isRequired,
+  setObjectData: PropTypes.func.isRequired,
+  handleFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool.isRequired,
+  datasets: PropTypes.array.isRequired,
+  conflictClasses: PropTypes.array.isRequired,
+  onEditObject: PropTypes.func.isRequired,
+  onDeleteObject: PropTypes.func.isRequired,
+};
 
 export default ObjectCard;

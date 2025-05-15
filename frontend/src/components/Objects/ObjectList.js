@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { 
   Table, 
   TableBody, 
@@ -220,5 +221,11 @@ function ObjectList({ objects: allObjects, onEditObject, onDeleteObject }) {
     </Box>
   );
 }
+
+ObjectList.propTypes = {
+  objects: PropTypes.array.isRequired,
+  onEditObject: PropTypes.func.isRequired,
+  onDeleteObject: PropTypes.func.isRequired,
+};
 
 export default ObjectList;

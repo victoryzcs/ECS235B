@@ -198,7 +198,7 @@ function Objects() {
         <Typography variant="h4" component="h1" gutterBottom>
           Objects Management
         </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
           Manage objects, their datasets, and conflict classes.
         </Typography>
       </Box>

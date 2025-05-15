@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { 
   Paper, 
   TextField, 
@@ -284,5 +285,26 @@ function DatasetCard({
     
   );
 }
+
+DatasetCard.propTypes = {
+  datasets: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
+  newDataset: PropTypes.object.isRequired,
+  setNewDataset: PropTypes.func.isRequired,
+  handleAddDataset: PropTypes.func.isRequired,
+  handleViewDataset: PropTypes.func.isRequired,
+  onEditDataset: PropTypes.func.isRequired,
+  onDeleteDataset: PropTypes.func.isRequired,
+  selectedDataset: PropTypes.object,
+  conflictWarning: PropTypes.bool.isRequired,
+  setConflictWarning: PropTypes.func.isRequired,
+  conflictingDatasetNames: PropTypes.string,
+  confirmAccessDespiteConflicts: PropTypes.func.isRequired,
+  loading: PropTypes.bool.isRequired,
+  accessDenied: PropTypes.bool.isRequired,
+  isManager: PropTypes.bool,
+  isEditMode: PropTypes.bool.isRequired,
+  initialFormDataset: PropTypes.object,
+  handleUpdateDataset: PropTypes.func.isRequired,
+};
 
 export default DatasetCard;

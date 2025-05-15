@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { 
   Table, 
   TableBody, 
@@ -83,5 +84,11 @@ function ConflictClassList({ conflictClasses, onEdit, onDelete }) {
     </Box>
   );
 }
+
+ConflictClassList.propTypes = {
+  conflictClasses: PropTypes.array.isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};
 
 export default ConflictClassList;

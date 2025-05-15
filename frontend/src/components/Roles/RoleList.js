@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { 
   Table, 
   TableBody, 
@@ -65,5 +66,11 @@ function RoleList({ roles, onEdit, onDelete }) {
     </Box>
   );
 }
+
+RoleList.propTypes = {
+  roles: PropTypes.array.isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};
 
 export default RoleList;

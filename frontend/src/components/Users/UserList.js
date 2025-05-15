@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { 
   Table, 
   TableBody, 
@@ -110,5 +111,11 @@ function UserList({ users, onEditUser, onDeleteUser }) {
     </TableContainer>
   );
 }
+
+UserList.propTypes = {
+  users: PropTypes.array,
+  onEditUser: PropTypes.func.isRequired,
+  onDeleteUser: PropTypes.func.isRequired,
+};
 
 export default UserList;

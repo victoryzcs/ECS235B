@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import ConflictClassList from './ConflictClassList';
 import ConflictClassForm from './ConflictClassForm';
 import { Card, CardContent, Typography, Divider } from '@mui/material';
@@ -40,5 +41,18 @@ function ConflictClassCard({
     </Card>
   );
 }
+
+ConflictClassCard.propTypes = {
+  conflictClasses: PropTypes.array.isRequired,
+  newConflictClass: PropTypes.object.isRequired,
+  setNewConflictClass: PropTypes.func.isRequired,
+  handleAddConflictClass: PropTypes.func.isRequired,
+  datasets: PropTypes.array.isRequired,
+  onEditConflictClass: PropTypes.func.isRequired,
+  onDeleteConflictClass: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool,
+  initialData: PropTypes.object,
+  handleUpdateConflictClass: PropTypes.func.isRequired,
+};
 
 export default ConflictClassCard;

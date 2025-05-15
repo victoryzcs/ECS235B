@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   TextField,
   Button,
@@ -121,5 +122,14 @@ function ObjectForm({
     </Box>
   );
 }
+
+ObjectForm.propTypes = {
+  objectData: PropTypes.object.isRequired,
+  setObjectData: PropTypes.func.isRequired,
+  handleFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool.isRequired,
+  datasets: PropTypes.array.isRequired,
+  conflictClasses: PropTypes.array.isRequired,
+};
 
 export default ObjectForm;

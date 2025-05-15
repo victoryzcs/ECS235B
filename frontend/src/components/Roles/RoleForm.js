@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   TextField,
   Button,
@@ -68,5 +69,12 @@ function RoleForm({
     </Box>
   );
 }
+
+RoleForm.propTypes = {
+  roleData: PropTypes.object.isRequired,
+  setRoleData: PropTypes.func.isRequired,
+  handleSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool,
+};
 
 export default RoleForm;

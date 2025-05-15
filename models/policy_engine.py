@@ -164,7 +164,6 @@ class PolicyEngine:
             obj.save()
             self.objects[obj.id] = obj # Update cache
 
-            # If dataset was changed, update the old and new dataset's object lists
             if dataset_id is not None and original_dataset_id != dataset_id:
                 if original_dataset_id and original_dataset_id in self.datasets:
                     old_dataset = self.datasets[original_dataset_id]

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   TextField,
   Button,
@@ -10,7 +11,6 @@ import {
   FormControl,
   FormHelperText,
   Box,
-  Divider,
   Paper,
   Tabs,
   Tab
@@ -35,6 +35,12 @@ function TabPanel(props) {
     </div>
   );
 }
+
+TabPanel.propTypes = {
+  children: PropTypes.node,
+  index: PropTypes.number.isRequired,
+  value: PropTypes.number.isRequired,
+};
 
 function UserForm({ 
   userData,
@@ -342,5 +348,15 @@ function UserForm({
     </Box>
   );
 }
+
+UserForm.propTypes = {
+  userData: PropTypes.object.isRequired,
+  setUserData: PropTypes.func.isRequired,
+  handleUserFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool,
+  handleAssignRole: PropTypes.func.isRequired,
+  handleGrantPermission: PropTypes.func.isRequired,
+  users: PropTypes.array.isRequired,
+};
 
 export default UserForm;

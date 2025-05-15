@@ -26,7 +26,6 @@ function Datasets() {
   const auth = useAuth();
   const currentUser = auth?.currentUser;
   const isManager = auth?.isManager;
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   // State for Edit/Delete
   const [isEditMode, setIsEditMode] = useState(false);
@@ -101,7 +100,6 @@ function Datasets() {
         showNotification('Access denied: You have already accessed a dataset in a conflicting class', 'error');
         setAccessDenied(true);
         setSelectedDataset(dataset);
-        setDialogOpen(true);
         setLoading(false);
         return;
       }
@@ -121,11 +119,9 @@ function Datasets() {
     if (hasAccess) {
       setSelectedDataset(dataset);
       setAccessDenied(false);
-      setDialogOpen(true);
     } else {
       setAccessDenied(true);
       setSelectedDataset(dataset);
-      setDialogOpen(true);
     }
     
     setLoading(false);
@@ -160,8 +156,6 @@ function Datasets() {
     setConflictWarning(false);
     
     await recordDatasetAccess(selectedDataset.id);
-    
-    setDialogOpen(true);
   };
   
   const checkDatasetAccess = async (datasetId) => {

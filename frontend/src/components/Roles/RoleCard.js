@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import RoleList from './RoleList';
 import RoleForm from './RoleForm';
 import { Card, CardContent, Typography, Divider } from '@mui/material';
@@ -36,5 +37,15 @@ function RoleCard({
     </Card>
   );
 }
+
+RoleCard.propTypes = {
+  roles: PropTypes.array.isRequired,
+  roleData: PropTypes.object.isRequired,
+  setRoleData: PropTypes.func.isRequired,
+  handleFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool.isRequired,
+  onEditRole: PropTypes.func.isRequired,
+  onDeleteRole: PropTypes.func.isRequired,
+};
 
 export default RoleCard;

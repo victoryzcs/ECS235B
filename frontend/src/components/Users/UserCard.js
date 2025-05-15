@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import UserList from './UserList';
 import UserForm from './UserForm';
 import { Card, CardContent, Typography, Divider,Button} from '@mui/material';
@@ -6,12 +7,10 @@ import { Card, CardContent, Typography, Divider,Button} from '@mui/material';
 
 function UserCard({ 
   users, 
-  // Props for UserForm (add/edit user)
-  userData, // Renamed from newUser
-  setUserData, // Renamed from setNewUser
-  handleUserFormSubmit, // Renamed from handleAddUser
-  isEditMode, // New prop for UserForm
-  // Props for UserForm (assign role, grant permission - passed through)
+  userData,   
+  setUserData, 
+  handleUserFormSubmit, 
+  isEditMode, 
   handleAssignRole, 
   handleGrantPermission,
   // Props for UserList
@@ -56,5 +55,17 @@ function UserCard({
     </Card>
   );
 }
+
+UserCard.propTypes = {
+  users: PropTypes.array.isRequired,
+  userData: PropTypes.object.isRequired,
+  setUserData: PropTypes.func.isRequired,
+  handleUserFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool,
+  handleAssignRole: PropTypes.func.isRequired,
+  handleGrantPermission: PropTypes.func.isRequired,
+  onEditUser: PropTypes.func.isRequired,
+  onDeleteUser: PropTypes.func.isRequired,
+};
 
 export default UserCard;

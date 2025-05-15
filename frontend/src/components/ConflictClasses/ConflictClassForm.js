@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   TextField,
   Button,
@@ -130,5 +131,15 @@ function ConflictClassForm({
     </Box>
   );
 }
+
+ConflictClassForm.propTypes = {
+  newConflictClass: PropTypes.object.isRequired,
+  setNewConflictClass: PropTypes.func.isRequired,
+  handleAddConflictClass: PropTypes.func.isRequired,
+  datasets: PropTypes.array.isRequired,
+  isEditMode: PropTypes.bool,
+  initialData: PropTypes.object,
+  handleUpdateConflictClass: PropTypes.func.isRequired,
+};
 
 export default ConflictClassForm;

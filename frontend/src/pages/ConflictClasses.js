@@ -165,7 +165,7 @@ function ConflictClasses() {
         <Typography variant="h4" component="h1" gutterBottom>
           Conflict Classes Management
         </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
           Create and manage conflict classes to organize datasets and prevent conflicts.
         </Typography>
       </Box>

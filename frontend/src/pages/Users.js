@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UserCard from '../components/Users/UserCard';
 import { Container, Typography, Box, Alert, Snackbar, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button } from '@mui/material';
-import { useAuth } from '../contexts/AuthContext';
 
 function Users() {
   const [users, setUsers] = useState([]);
@@ -23,7 +22,6 @@ function Users() {
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  const auth = useAuth();
   
   useEffect(() => {
     console.log('Refresh trigger changed:', refreshTrigger);
@@ -252,7 +250,7 @@ function Users() {
         <Typography variant="h4" component="h1" gutterBottom>
           Users Management
         </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
           Add users, assign roles, and manage permissions in the system.
         </Typography>
       </Box>
