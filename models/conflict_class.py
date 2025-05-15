@@ -1,23 +1,32 @@
-from typing import List, Dict
-from pydantic import BaseModel, Field
+from typing import List, Dict, Any
+from .base_model import BaseModel
 
 class ConflictClass(BaseModel):
-    class_id: str
-    name: str
-    datasets: List[str] = Field(default_factory=list)
-
-    def to_dict(self):
-        return {
-            "class_id": self.class_id,
-            "name": self.name,
-            "datasets": self.datasets
-        }
+    # Override collection name because it's 'conflict_classes' not 'conflictclasss'
     @classmethod
-    def from_dict(cls, data):
+    def _get_collection_name(cls) -> str:
+        return 'conflict_classes'
+
+    def __init__(self, class_id: str, name: str, datasets: List[str] = None):
+        self.id = class_id  # Use class_id as the primary ID, maps to _id
+        self.name = name
+        self.datasets = datasets if datasets is not None else []
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            '_id': self.id, # Save as _id
+            'name': self.name,
+            'datasets': self.datasets
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ConflictClass':
+        if not data:
+            return None
         return cls(
-            class_id=data.get("class_id"),
-            name=data.get("name"),
-            datasets=data.get("datasets", [])
+            class_id=data['_id'], # Load from _id
+            name=data.get('name'),
+            datasets=data.get('datasets', [])
         )
 
 if __name__ == "__main__":

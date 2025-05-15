@@ -12,15 +12,32 @@ function Users() {
   });
   const API_URL = 'http://localhost:8080/api';
 
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
   useEffect(() => {
+    console.log('Refresh trigger changed:', refreshTrigger);
     fetchUsers();
-  }, []);
+  }, [refreshTrigger]); 
+  
+  useEffect(() => {
+    const handleRefreshEvent = () => {
+      console.log('Refresh event received');
+      fetchUsers();
+    };
+    
+    window.addEventListener('refreshUsers', handleRefreshEvent);
+    
+    return () => {
+      window.removeEventListener('refreshUsers', handleRefreshEvent);
+    };
+  }, []); 
 
   const fetchUsers = async () => {
     try {
       const response = await fetch(`${API_URL}/users`);
       const data = await response.json();
       const userList = Object.values(data);
+      console.log('Fetched users:', userList); 
       setUsers(userList);
       setNewUser(prev => ({ ...prev, users: userList }));
     } catch (error) {
@@ -47,16 +64,20 @@ function Users() {
   const handleAddUser = async (e) => {
     e.preventDefault();
     try {
+      console.log('Adding user:', newUser);
       const response = await fetch(`${API_URL}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newUser.id, name: newUser.name })
+        body: JSON.stringify({ id: newUser.id, name: newUser.name, password: "password"})
       });
       
       if (response.ok) {
         setNewUser({ id: '', name: '', users: users });
-        fetchUsers();
         showNotification('User added successfully');
+        
+        console.log('Fetching users after adding');
+        await fetchUsers(); 
+        setRefreshTrigger(prev => prev + 1); 
       } else {
         const errorData = await response.json();
         showNotification(`Error: ${errorData.error || 'Failed to add user'}`, 'error');
@@ -81,7 +102,8 @@ function Users() {
       });
       
       if (response.ok) {
-        fetchUsers(); // Refresh the user list to show updated roles
+        // Trigger a refresh instead of calling fetchUsers directly
+        setRefreshTrigger(prev => prev + 1);
         showNotification('Role assigned successfully');
       } else {
         const errorData = await response.json();
@@ -107,7 +129,7 @@ function Users() {
       });
       
       if (response.ok) {
-        fetchUsers(); // Refresh the user list to show updated permissions
+        setRefreshTrigger(prev => prev + 1);
         showNotification(`Permission ${action} on ${objectId} granted to user ${userId}`);
       } else {
         const errorData = await response.json();

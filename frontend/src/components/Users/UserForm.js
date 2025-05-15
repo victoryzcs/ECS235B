@@ -15,6 +15,7 @@ import {
   Tabs,
   Tab
 } from '@mui/material';
+import { useAuth } from '../../contexts/AuthContext';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -47,6 +48,9 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
     action: ''
   });
   
+  const auth = useAuth();
+  const isManager = auth?.isManager;
+  
   useEffect(() => {
     fetchRoles();
     fetchObjects();
@@ -66,6 +70,7 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
     try {
       const response = await fetch('http://localhost:8080/api/objects');
       const data = await response.json();
+      console.log('Objects:', data);
       setObjects(Object.values(data));
     } catch (error) {
       console.error('Error fetching objects:', error);
@@ -85,7 +90,9 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
   };
 
   const handlePermissionSubmit = (e) => {
+
     e.preventDefault();
+    console.log('Permission Data:', permissionData);
     handleGrantPermission(permissionData.userId, permissionData.objectId, permissionData.action);
     setPermissionData({
       userId: '',
@@ -156,16 +163,29 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                   <InputLabel>User</InputLabel>
                   <Select
                     value={selectedUserId}
-                    onChange={e => setSelectedUserId(e.target.value)}
+                    onChange={e => {
+                      console.log('Assign Role - Selected User ID:', e.target.value);
+                      setSelectedUserId(e.target.value);
+                    }}
                     label="User"
                     required
                   >
                     <MenuItem value="">
                       <em>Select a user</em>
                     </MenuItem>
-                    {users.map(user => (
-                      <MenuItem key={user.id} value={user.id}>
-                        {user.id} - {user.name}
+                    {users
+                    .filter(user => {
+                      if (isManager) {
+                        if (typeof user?._id !== 'string') {
+                          return false;
+                        }
+                        return user._id.toLowerCase()!=='admin' && !user._id.toLowerCase().startsWith("manager");
+                      }
+                      return true;
+                    })
+                    .map((user, index) => (
+                      <MenuItem key={user._id != null ? user._id : `user-${index}`} value={user._id != null ? user._id : ''}>
+                        {(user._id != null ? user._id : 'N/A')} - {user.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -177,16 +197,26 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={selectedRole}
-                    onChange={e => setSelectedRole(e.target.value)}
+                    onChange={e => {
+                      console.log('Assign Role - Selected Role ID:', e.target.value);
+                      setSelectedRole(e.target.value);
+                    }}
                     label="Role"
                     required
                   >
                     <MenuItem value="">
                       <em>Select a role</em>
                     </MenuItem>
-                    {roles.map(role => (
-                      <MenuItem key={role.id} value={role.id}>
-                        {role.id} - {role.name}
+                    {roles
+                    .filter(role => {
+                      if (isManager) {
+                        return role._id.toLowerCase() !== 'manager' && role._id.toLowerCase() !== 'admin';
+                      }
+                      return true;
+                    })
+                    .map((role, index) => (
+                      <MenuItem key={role._id != null ? role._id : `role-${index}`} value={role._id != null ? role._id : ''}>
+                        {(role._id != null ? role._id : 'N/A')} - {role.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -219,16 +249,17 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                       <em>Select a user</em>
                     </MenuItem>
                     {users.map(user => (
-                      <MenuItem key={user.id} value={user.id}>
-                        {user.id} - {user.name}
+                      <MenuItem key={user._id} value={user._id}>
+                        {user._id} - {user.name}
                       </MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText>Select user for the permission</FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth variant="outlined" margin="normal">
-                  <InputLabel>Object</InputLabel>
+                  <InputLabel id='object-select-label'>Object</InputLabel>
                   <Select
                     name="objectId"
                     value={permissionData.objectId}
@@ -240,30 +271,34 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                       <em>Select an object</em>
                     </MenuItem>
                     {objects.map(obj => (
-                      <MenuItem key={obj.id} value={obj.id}>
-                        {obj.id} - {obj.name}
+                      <MenuItem key={obj._id} value={obj._id}>
+                        {obj._id} - {obj.name}
                       </MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText>Select object for the permission</FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth variant="outlined" margin="normal">
-                  <InputLabel>Action</InputLabel>
+                  <InputLabel id="action-select-label">Permission Action</InputLabel>
                   <Select
                     name="action"
                     value={permissionData.action}
                     onChange={handlePermissionChange}
-                    label="Action"
+                    label="Permission Action"
+                    labelId="action-select-label"
                     required
                   >
                     <MenuItem value="">
                       <em>Select an action</em>
                     </MenuItem>
                     <MenuItem value="read">Read</MenuItem>
-                    <MenuItem value="write">Write</MenuItem>
-                    <MenuItem value="execute">Execute</MenuItem>
+                    {!isManager && <MenuItem value="write">Write</MenuItem>}
                   </Select>
+                  <FormHelperText>
+                    {isManager ? "Managers can only grant read permissions to workers" : "Select the permission to grant"}
+                  </FormHelperText>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>

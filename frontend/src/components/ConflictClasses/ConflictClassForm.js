@@ -18,7 +18,6 @@ function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddCon
     const {
       target: { value },
     } = event;
-    // On autofill we get a stringified value.
     setNewConflictClass({
       ...newConflictClass,
       datasets: typeof value === 'string' ? value.split(',') : value,
@@ -55,16 +54,19 @@ function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddCon
               margin="normal"
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={8}>
             <FormControl fullWidth variant="outlined" margin="normal">
               <InputLabel id="dataset-multiple-chip-label">Datasets</InputLabel>
               <Select
+                fullWidth
+                sx={{ width: '100%' }}
                 labelId="dataset-multiple-chip-label"
+                label="Datasets"
                 id="dataset-multiple-chip"
                 multiple
                 value={newConflictClass.datasets || []}
                 onChange={handleDatasetChange}
-                input={<OutlinedInput id="select-multiple-chip" label="Datasets" />}
+                input={<OutlinedInput fullWidth id="select-multiple-chip" label="Datasets" />}
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {selected.map((value) => (
@@ -72,13 +74,20 @@ function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddCon
                     ))}
                   </Box>
                 )}
+                MenuProps={{
+                  PaperProps: {
+                    style: {
+                      maxHeight: 280,
+                    },
+                  },
+                }}
               >
-                {datasets.map((dataset) => (
+                {datasets.map((dataset, index) => (
                   <MenuItem
-                    key={dataset.id}
-                    value={dataset.id}
+                    key={dataset._id != null ? dataset._id : `dataset-${index}`}
+                    value={dataset._id != null ? dataset._id : ''}
                   >
-                    {dataset.id} - {dataset.name}
+                    {(dataset._id != null ? dataset._id : 'N/A')} - {dataset.name}
                   </MenuItem>
                 ))}
               </Select>

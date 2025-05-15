@@ -1,26 +1,30 @@
-from pydantic import BaseModel
-from typing import Dict
-class Object(BaseModel):
-    id: str
-    name: str
-    dataset: str
-    conflict_class: str
+from typing import Dict, Any
+from .base_model import BaseModel
 
-    def to_dict(self) -> Dict:
+class Object(BaseModel):
+    def __init__(self, id: str, name: str, dataset: str, conflict_class: str = None):
+        self.id = id # Used as _id
+        self.name = name
+        self.dataset = dataset
+        self.conflict_class = conflict_class
+
+    def to_dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id,
-            "name": self.name,
-            "dataset": self.dataset,
-            "conflict_class": self.conflict_class
+            '_id': self.id,
+            'name': self.name,
+            'dataset': self.dataset,
+            'conflict_class': self.conflict_class
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Object':
+    def from_dict(cls, data: Dict[str, Any]) -> 'Object':
+        if not data:
+            return None
         return cls(
-            id=data.get("id"),
-            name=data.get("name"),
-            dataset=data.get("dataset"),
-            conflict_class=data.get("conflict_class")
+            id=data['_id'],
+            name=data.get('name'),
+            dataset=data.get('dataset'),
+            conflict_class=data.get('conflict_class')
         )
 
 if __name__ == "__main__":

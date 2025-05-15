@@ -9,7 +9,10 @@ import Home from './pages/Home';
 import Objects from './pages/Objects';
 import Datasets from './pages/Datasets';
 import ConflictClasses from './pages/ConflictClasses';
-
+import { AuthProvider } from './contexts/AuthContext';
+import Login from './pages/Login';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
+import Signup from './pages/Signup';
 // Create a custom theme
 const theme = createTheme({
   palette: {
@@ -35,25 +38,64 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <div className="App">
-        <main className='App-main'>
-          <div className='dashboard'>
-            <NevigationTabs />
-            
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/roles" element={<Roles />} />
-              <Route path="/objects" element={<Objects />} />
-              <Route path="/datasets" element={<Datasets />} />
-              <Route path="/conflict-classes" element={<ConflictClasses />} />
-            </Routes>
-          </div>
-        </main>
-      </div>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <div className="App">
+          <main className='App-main'>
+            <div className='dashboard'>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/" element={
+                    <>
+                      <NevigationTabs />
+                      <Home />
+                    </>
+                  } />
+                  <Route path="/users" element={
+                    <>
+                      <NevigationTabs />
+                      <Users />
+                    </>
+                  } />
+                  <Route path="/roles" element={
+                    <>
+                      <NevigationTabs />
+                      <Roles />
+                    </>
+                  } />
+                  <Route path="/objects" element={
+                    <>
+                      <NevigationTabs />
+                      <Objects />
+                    </>
+                  } />
+                  <Route path="/datasets" element={
+                    <>
+                      <NevigationTabs />
+                      <Datasets />
+                    </>
+                  } />
+                  <Route path="/conflict-classes" element={
+                    <>
+                      <NevigationTabs />
+                      <ConflictClasses />
+                    </>
+                  } />
+                </Route>
+                <Route path="/signup" element={
+                  <>
+                    <Signup />
+                  </>
+                }/>
+              </Routes>
+            </div>
+          </main>
+        </div>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

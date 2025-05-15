@@ -38,6 +38,7 @@ function ConflictClasses() {
       const response = await fetch(`${API_URL}/datasets`);
       const data = await response.json();
       setDatasets(Object.values(data));
+      console.log('datasets:', Object.values(data));
     } catch (error) {
       console.error('Error fetching datasets:', error);
       showNotification('Error fetching datasets', 'error');
@@ -62,6 +63,7 @@ function ConflictClasses() {
   const handleAddConflictClass = async (e) => {
     e.preventDefault();
     try {
+      console.log('newConflictClass:', newConflictClass);
       const response = await fetch(`${API_URL}/conflict_classes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
