@@ -41,7 +41,7 @@ function ObjectForm({ newObject, setNewObject, handleAddObject, datasets, confli
             <TextField
               fullWidth
               label="ID"
-              value={newObject.id}
+              value={newObject._id}
               onChange={e => setNewObject({...newObject, id: e.target.value})}
               required
               variant="outlined"
@@ -73,8 +73,8 @@ function ObjectForm({ newObject, setNewObject, handleAddObject, datasets, confli
                   <em>Select a dataset</em>
                 </MenuItem>
                 {datasets.map(dataset => (
-                  <MenuItem key={dataset.id} value={dataset.id}>
-                    {dataset.id} - {dataset.name}
+                  <MenuItem key={dataset._id} value={dataset._id}>
+                    {dataset._id} - {dataset.name}
                   </MenuItem>
                 ))}
               </Select>

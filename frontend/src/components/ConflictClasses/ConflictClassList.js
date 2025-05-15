@@ -28,10 +28,12 @@ function ConflictClassList({ conflictClasses }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {conflictClasses.map(cc => (
-                <TableRow key={cc.class_id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                  <TableCell component="th" scope="row">{cc.class_id}</TableCell>
-                  <TableCell>{cc.name}</TableCell>
+              {conflictClasses.map((cc, index) => (
+                <TableRow key={cc._id != null ? cc._id : `cc-${index}`} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                  <TableCell component="th" scope="row">
+                    {cc._id != null ? cc._id : 'N/A'}
+                  </TableCell>
+                  <TableCell>{cc.name || 'N/A'}</TableCell>
                   <TableCell>
                     {cc.datasets && cc.datasets.length > 0 ? (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>

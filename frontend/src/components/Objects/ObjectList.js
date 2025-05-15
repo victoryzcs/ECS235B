@@ -10,13 +10,19 @@ import {
   Chip,
   Typography,
   Box,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useAuth } from '../../contexts/AuthContext';
+import ObjectViewer from './ObjectViewer';
 
 function ObjectList({ objects: allObjects }) {
   const [filteredObjects, setFilteredObjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedObject, setSelectedObject] = useState(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const auth = useAuth();
   const currentUser = auth?.currentUser;
   const isAdmin = auth?.isAdmin;
@@ -34,7 +40,7 @@ function ObjectList({ objects: allObjects }) {
       const token = localStorage.getItem('token');
       
       const permittedObjects = [];
-      
+      console.log('allObjects:', allObjects);
       for (const object of allObjects) {
         try {
           if (isManager) {
@@ -50,7 +56,7 @@ function ObjectList({ objects: allObjects }) {
             },
             body: JSON.stringify({
               user_id: currentUser?.id,
-              object_id: object.id,
+              object_id: object._id,
               action: 'read'
             })
           });
@@ -77,6 +83,22 @@ function ObjectList({ objects: allObjects }) {
     }
   }, [allObjects, currentUser, isAdmin, isManager]);
 
+  const handleObjectClick = (object) => {
+    setSelectedObject(object);
+    setViewerOpen(true);
+  };
+
+  const handleViewerClose = () => {
+    setViewerOpen(false);
+    setSelectedObject(null);
+  };
+
+  const handleAccessRecorded = () => {
+    // Refresh the objects list to reflect any changes
+    //setLoading(true);
+    // You might want to add a refresh function here if needed
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -94,44 +116,74 @@ function ObjectList({ objects: allObjects }) {
             : "You don't have permission to view any objects"}
         </Typography>
       ) : (
-        <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: 'auto' }}>
-          <Table stickyHeader aria-label="objects table">
-            <TableHead>
-              <TableRow>
-                <TableCell><strong>ID</strong></TableCell>
-                <TableCell><strong>Name</strong></TableCell>
-                <TableCell><strong>Dataset</strong></TableCell>
-                <TableCell><strong>Conflict Class</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredObjects.map(object => (
-                <TableRow key={object.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                  <TableCell component="th" scope="row">{object.id}</TableCell>
-                  <TableCell>{object.name}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={object.dataset} 
-                      size="small" 
-                      sx={{ background: '#e3f2fd' }} 
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {object.conflict_class ? (
-                      <Chip 
-                        label={object.conflict_class} 
-                        size="small" 
-                        sx={{ background: '#fff8e1' }} 
-                      />
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">None</Typography>
-                    )}
-                  </TableCell>
+        <>
+          <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: 'auto' }}>
+            <Table stickyHeader aria-label="objects table">
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>ID</strong></TableCell>
+                  <TableCell><strong>Name</strong></TableCell>
+                  <TableCell><strong>Dataset</strong></TableCell>
+                  <TableCell><strong>Conflict Class</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredObjects.map(object => (
+                  <TableRow 
+                    key={object._id} 
+                    sx={{ 
+                      '&:last-child td, &:last-child th': { border: 0 },
+                      '&:hover': { backgroundColor: '#f5f5f5' },
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <TableCell component="th" scope="row">{object._id}</TableCell>
+                    <TableCell>{object.name}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={object.dataset} 
+                        size="small" 
+                        sx={{ background: '#e3f2fd' }} 
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {object.conflict_class ? (
+                        <Chip 
+                          label={object.conflict_class} 
+                          size="small" 
+                          sx={{ background: '#fff8e1' }} 
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">None</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title="View Object">
+                        <IconButton 
+                          size="small" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleObjectClick(object);
+                          }}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <ObjectViewer
+            open={viewerOpen}
+            onClose={handleViewerClose}
+            object={selectedObject}
+            onAccessRecorded={handleAccessRecorded}
+          />
+        </>
       )}
     </Box>
   );

@@ -68,7 +68,7 @@ function Users() {
       const response = await fetch(`${API_URL}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newUser.id, name: newUser.name })
+        body: JSON.stringify({ id: newUser.id, name: newUser.name, password: "password"})
       });
       
       if (response.ok) {

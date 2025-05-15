@@ -2,330 +2,372 @@ from collections import UserDict
 import json
 import sys
 import os
-from this import d
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from backend.auth import hash_password
 from models.conflict_class import ConflictClass
 from models.capability_lists import CapabilityList
 from models.dataset import Dataset
 from models.object import Object
 from models.role import Role, Permission
-from models.user import User
-from models.database import Database
-from typing import Tuple, Dict, Any
-import jwt
-import datetime
-import bcrypt  
+from models.user import User, hash_password_util
+from typing import Tuple, Dict, Any, List
+from models.base_model import BaseModel
+
+class AccessHistoryEntry:
+    def __init__(self, user_id: str, accessed_datasets: List[str]):
+        self.user_id = user_id
+        self.accessed_datasets = accessed_datasets
+
+    def to_dict(self):
+        return {'_id': self.user_id, 'user_id': self.user_id, 'accessed_datasets': self.accessed_datasets}
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(user_id=data['user_id'], accessed_datasets=data.get('accessed_datasets', []))
 
 class PolicyEngine:
     def __init__(self):
-        self.db = Database()
-        self.caps = CapabilityList()
+        # In-memory caches
+        self.users: Dict[str, User] = {}
+        self.roles: Dict[str, Role] = {}
+        self.objects: Dict[str, Object] = {}
+        self.datasets: Dict[str, Dataset] = {}
+        self.conflict_classes: Dict[str, ConflictClass] = {}
+        self.caps: CapabilityList = None
+        self.user_access_history: Dict[str, List[str]] = {} # user_id -> list of dataset_ids
         self._load_data()
     
     def _load_data(self):
-        """Load all data from MongoDB into memory"""
-        self.roles = {doc['_id']: Role.from_dict(doc) for doc in self.db.get_all_documents('roles')}
-        self.users = {doc['_id']: User.from_dict(doc) for doc in self.db.get_all_documents('users')}
-        self.objects = {doc['_id']: Object.from_dict(doc) for doc in self.db.get_all_documents('objects')}
-        self.datasets = {doc['_id']: Dataset.from_dict(doc) for doc in self.db.get_all_documents('datasets')}
-        self.conflict_classes = {doc['_id']: ConflictClass.from_dict(doc) for doc in self.db.get_all_documents('conflict_classes')}
+        """Load all data from MongoDB into memory using ORM methods."""
+        self.users = {user.id: user for user in User.get_all()}
+        self.roles = {role.id: role for role in Role.get_all()}
+        self.objects = {obj.id: obj for obj in Object.get_all()}
+        self.datasets = {ds.id: ds for ds in Dataset.get_all()}
+        self.conflict_classes = {cc.id: cc for cc in ConflictClass.get_all()}
         
-        # Load capability lists
-        caps_data = self.db.get_all_documents('capability_lists')
-        if caps_data:
-            self.caps = CapabilityList.from_dict(caps_data[0].get('matrix', {}))
+        self.caps = CapabilityList.load() # Loads the singleton capability list
+        if not self.caps: # Should be instantiated by .load() even if DB is empty
+            self.caps = CapabilityList()
+            self.caps.save() # Save a default empty one if it didn't exist
         
         # Load access history
-        self.user_access_history = {}
-        for doc in self.db.get_all_documents('access_history'):
-            self.user_access_history[doc['user_id']] = doc.get('accessed_datasets', [])
+        # Access history will be loaded into user_access_history dict and also kept on User objects
+        raw_history_docs = BaseModel.get_access_history_collection().find({})
+        for doc in raw_history_docs:
+            entry = AccessHistoryEntry.from_dict(doc)
+            self.user_access_history[entry.user_id] = entry.accessed_datasets
+            # Also update the in-memory User object if it exists
+            if entry.user_id in self.users:
+                self.users[entry.user_id].access_history = entry.accessed_datasets
+        
+        
     
-
-    def add_user(self, user: User):
+    def add_user(self, user_id: str, name: str, password_str: str = "password"):
+        if user_id in self.users:
+            raise Exception(f"User {user_id} already exists.")
+        hashed_pwd = hash_password_util(password_str)
+        user = User(id=user_id, name=name, password_hash=hashed_pwd)
+        user.save()
         self.users[user.id] = user
-        default_password = "password"
-        self.db.save_document('users', {'_id': user.id, **user.to_dict(), 'password': hash_password(default_password)})
+        return user
     
-    def add_role(self, role: Role):
+    def add_role(self, role_id: str, name: str):
+        if role_id in self.roles:
+            raise Exception(f"Role {role_id} already exists.")
+        role = Role(id=role_id, name=name)
+        role.save()
         self.roles[role.id] = role
-        self.db.save_document('roles', {'_id': role.id, **role.to_dict()})
+        return role
     
-    def add_object(self, obj: Object):
-        if obj.dataset not in self.datasets:
-            raise Exception(f"Dataset {obj.dataset} does not exist")
+    def add_object(self, obj_id: str, name: str, dataset_id: str):
+        if obj_id in self.objects:
+            raise Exception(f"Object {obj_id} already exists.")
+        if dataset_id not in self.datasets:
+            raise Exception(f"Dataset {dataset_id} does not exist. Please add it first.")
         
+        all_conflict_classes = self.conflict_classes.values()
+        conflict_class_id = None
+        for cc in all_conflict_classes:
+            if dataset_id in cc.datasets:
+                conflict_class_id = cc.id
+                break
+        obj = Object(id=obj_id, name=name, dataset=dataset_id, conflict_class=conflict_class_id)
+        obj.save()
         self.objects[obj.id] = obj
-        if obj.id not in self.datasets[obj.dataset].objects:
-            self.datasets[obj.dataset].objects.append(obj.id)
-            self.db.save_document('datasets', {'_id': obj.dataset, **self.datasets[obj.dataset].to_dict()})
         
-        self.db.save_document('objects', {'_id': obj.id, **obj.to_dict()})
+        dataset = self.datasets[dataset_id]
+        if obj.id not in dataset.objects:
+            dataset.objects.append(obj.id)
+            dataset.save()
+        return obj
     
-    def add_dataset(self, dataset: Dataset):
+    def add_dataset(self, dataset_id: str, name: str, description: str = None):
+        if dataset_id in self.datasets:
+            raise Exception(f"Dataset {dataset_id} already exists.")
+        dataset = Dataset(id=dataset_id, name=name, description=description)
+        dataset.save()
         self.datasets[dataset.id] = dataset
-        self.db.save_document('datasets', {'_id': dataset.id, **dataset.to_dict()})
+        return dataset
     
-    def add_conflict_class(self, conflict_class: ConflictClass):
-        self.conflict_classes[conflict_class.class_id] = conflict_class
-        self.db.save_document('conflict_classes', {'_id': conflict_class.class_id, **conflict_class.to_dict()})
+    def add_conflict_class(self, cc_id: str, name: str, dataset_ids: List[str]):
+        if cc_id in self.conflict_classes:
+            raise Exception(f"Conflict Class {cc_id} already exists.")
+        for ds_id in dataset_ids:
+            if ds_id not in self.datasets:
+                raise Exception(f"Dataset {ds_id} for conflict class does not exist.")
+        cc = ConflictClass(class_id=cc_id, name=name, datasets=dataset_ids)
+        cc.save()
+        self.conflict_classes[cc.id] = cc
+        return cc
     
     def assign_role_to_user(self, user_id: str, role_id: str):
-        if user_id not in self.users or role_id not in self.roles:
-            raise ValueError("Invalid user or role ID")
-        
-        if role_id not in self.users[user_id].roles:
-            self.users[user_id].roles.append(role_id)
-            
-            existing_user = self.db.get_document('users', user_id)
-            user_dict = self.users[user_id].to_dict()
-            
-            if existing_user and 'password' in existing_user:
-                user_dict['password'] = existing_user['password']
-                
-            self.db.save_document('users', {'_id': user_id, **user_dict})
+        user = self.users.get(user_id)
+        role = self.roles.get(role_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found.")
+        if not role:
+            raise ValueError(f"Role {role_id} not found.")
+
+        if role_id not in user.roles:
+            user.roles.append(role_id)
+            user.save()
+        return user
     
     def grant_direct_permission(self, user_id: str, object_id: str, action: str):
-        # if user_id not in self.users or object_id not in self.objects:
-        #     raise ValueError("Invalid user or object ID")
-        
+        if user_id not in self.users:
+             raise ValueError(f"User {user_id} not found.")
+        if object_id not in self.objects:
+            raise ValueError(f"Object {object_id} not found.")
+            
         self.caps.add_permission(user_id, object_id, action)
-        self.db.save_document('capability_lists', {'_id': 'caps_matrix', 'matrix': self.caps.to_dict()})
+        self.caps.save() # Save the entire caps list document
         return True
     
-
     def record_access(self, user_id: str, object_id: str):
-        if user_id not in self.users or object_id not in self.objects:
-            raise ValueError("Invalid user or object ID")
-        
-        obj = self.objects[object_id]
+        user = self.users.get(user_id)
+        obj = self.objects.get(object_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found during record_access.")
+        if not obj:
+            raise ValueError(f"Object {object_id} not found during record_access.")
+
         dataset_id = obj.dataset
         
+        # Update in-memory cache for user_access_history
         if user_id not in self.user_access_history:
             self.user_access_history[user_id] = []
         
+        needs_db_update = False
         if dataset_id not in self.user_access_history[user_id]:
             self.user_access_history[user_id].append(dataset_id)
-            self.db.save_document('access_history', {
-                '_id': user_id,
-                'user_id': user_id,
-                'accessed_datasets': self.user_access_history[user_id]
-            })
-            
-            if dataset_id not in self.users[user_id].access_history:
-                self.users[user_id].access_history.append(dataset_id)
-                self.db.save_document('users', {'_id': user_id, **self.users[user_id].to_dict()})
+            needs_db_update = True
+
+        # Update user object's access history (in memory and persist)
+        if dataset_id not in user.access_history:
+            user.access_history.append(dataset_id)
+            user.save() 
+           
+            needs_db_update = True # Marked for saving the standalone history doc too
+        
+        if needs_db_update:
+            # Save/update the specific access history document for this user
+            history_doc_data = AccessHistoryEntry(user_id=user_id, accessed_datasets=self.user_access_history[user_id]).to_dict()
+            BaseModel.get_access_history_collection().update_one(
+                {'_id': user_id},
+                {'$set': history_doc_data},
+                upsert=True
+            )
         return True
     
-    def add_permission_to_role(self, role_id, object_id, action):
-        """
-        Adds a permission to a role.
-        """
-        if role_id not in self.roles:
-            raise ValueError("Invalid role ID")
+    def add_permission_to_role(self, role_id: str, object_id: str, action: str):
+        role = self.roles.get(role_id)
+        if not role:
+            raise ValueError(f"Role {role_id} not found.")
         if object_id not in self.objects:
-            raise ValueError("Invalid object ID")
+            raise ValueError(f"Object {object_id} not found.")
             
+        # Avoid duplicate permissions
+        for p in role.permissions:
+            if p.object_id == object_id and p.action == action:
+                return True # Permission already exists
+        
         permission = Permission(object_id=object_id, action=action)
-        self.roles[role_id].permissions.append(permission)
-        self.db.save_document('roles', {'_id': role_id, **self.roles[role_id].to_dict()})
+        role.permissions.append(permission)
+        role.save()
         return True
         
-    def revoke_permission_from_role(self, role_id, object_id, action):
-        """
-        Revokes a permission from a role.
-        """
-        if role_id not in self.roles:
-            raise ValueError("Invalid role ID")
-            
-        role = self.roles[role_id]
+    def revoke_permission_from_role(self, role_id: str, object_id: str, action: str):
+        role = self.roles.get(role_id)
+        if not role:
+            raise ValueError(f"Role {role_id} not found.")
+
         original_length = len(role.permissions)
         role.permissions = [p for p in role.permissions 
                            if not (p.object_id == object_id and p.action == action)]
         
-        self.db.save_document('roles', {'_id': role_id, **role.to_dict()})
-        return len(role.permissions) < original_length
+        if len(role.permissions) < original_length:
+            role.save()
+            return True
+        return False # No permission was revoked
     
-    def revoke_direct_permission(self, user_id, object_id, action):
-        if user_id not in self.users or object_id not in self.objects:
-            raise ValueError("Invalid user or object ID")
-    
+    def revoke_direct_permission(self, user_id: str, object_id: str, action: str):
+        if user_id not in self.users:
+             raise ValueError(f"User {user_id} not found.")
+        if object_id not in self.objects:
+            raise ValueError(f"Object {object_id} not found.")
+
         self.caps.remove_permission(user_id, object_id, action)
-        self.db.save_document('capability_lists', {'_id': 'caps_matrix', 'matrix': self.caps.to_dict()})
+        self.caps.save()
         
-        # Check if user still has this permission through roles
+        # Optional: Warning if permission still exists via RBAC (as in original code)
         rbac_allowed, _ = self._check_rbac(user_id, object_id, action)
         if rbac_allowed:
-            print(f"WARNING: Direct permission '{action}' on '{self.objects[object_id].name}' was removed for user '{self.users[user_id].name}', "
-                  f"but they still have this permission through their assigned role(s). "
-                  f"Use user_check_permissions() to verify current permissions.")
-            
+            print(f"WARNING: Direct permission '{action}' on object '{self.objects[object_id].name}' removed for user '{self.users[user_id].name}', but permission remains via RBAC.")
         return True
     
-    def remoke_role_from_user(self, user_id, role_id):
-        if user_id not in self.users or role_id not in self.roles:
-            raise ValueError("Invalid user or role ID")
+    def revoke_role_from_user(self, user_id: str, role_id: str):
+        user = self.users.get(user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found.")
+        if role_id not in self.roles:
+            raise ValueError(f"Role {role_id} not found or not loaded.")
         
-        if role_id in self.users[user_id].roles:
-            self.users[user_id].roles.remove(role_id)
-            self.db.save_document('users', {'_id': user_id, **self.users[user_id].to_dict()})
+        if role_id in user.roles:
+            user.roles.remove(role_id)
+            user.save()
+            return True
+        return False # Role was not assigned to user
     
-    def _check_chinese_wall(self, user_id, object_id):
-        if object_id not in self.objects:
-            raise ValueError("Invalid object ID")
+    def _check_chinese_wall(self, user_id: str, object_id: str) -> Tuple[bool, str]:
+        obj = self.objects.get(object_id)
+        if not obj:
+            raise ValueError(f"Object {object_id} not found for Chinese Wall check.")
         
-        obj = self.objects[object_id]
         dataset_id = obj.dataset
-    
-        # If object's dataset is not in any conflict class, return True, eg. public dataset
-        if not any(dataset_id in cc.datasets for cc in self.conflict_classes.values()):
-            return True, "Dataset not in any conflict class"
-        
-        # Find the conflict class this dataset belongs to
-        conflict_class = None # eg. class_id='cc1' name='Test Conflict Class' datasets=['dataset1', 'dataset2']
-        for cc in self.conflict_classes.values():
-            
-            if dataset_id in cc.datasets:
-                conflict_class = cc
-                break
-    
-        if not conflict_class:
-            return True, "Dataset not in any conflict class"
 
-        user_history = self.user_access_history.get(user_id, [])
-        # Check if user has accessed any other dataset in the same conflict class
-        for accessed_dataset in user_history:
-            if accessed_dataset != dataset_id and accessed_dataset in conflict_class.datasets:
-                return False, "User has accessed a dataset in the same conflict class"
-        # If all checks pass, return True
-        return True, "Access allowed"
-    
-    def _check_rbac(self, user_id, object_id, action):
-        if user_id not in self.users:
-            return False, "User not found"
+        # If object's dataset is not in any conflict class, access is allowed
+        if not any(dataset_id in cc.datasets for cc in self.conflict_classes.values()):
+            return True, "Dataset not in any conflict class."
         
-        user = self.users[user_id]
+        target_conflict_class: ConflictClass = None
+        for cc_instance in self.conflict_classes.values():
+            if dataset_id in cc_instance.datasets:
+                target_conflict_class = cc_instance
+                break
+        
+        if not target_conflict_class:
+            # Should not happen if previous check passed, but good for safety
+            return True, "Dataset not associated with a known conflict class."
+
+        # Use the consistent user_access_history cache
+        user_accessed_datasets = self.user_access_history.get(user_id, [])
+        for accessed_ds_id in user_accessed_datasets:
+            if accessed_ds_id != dataset_id and accessed_ds_id in target_conflict_class.datasets:
+                return False, f"Chinese Wall conflict: User has accessed '{self.datasets.get(accessed_ds_id, Dataset(id=accessed_ds_id, name='Unknown')).name}' which conflicts with dataset of current object."
+        
+        return True, "Access allowed by Chinese Wall policy."
     
-        # Check each role the user has
+    def _check_rbac(self, user_id: str, object_id: str, action: str) -> Tuple[bool, str]:
+        user = self.users.get(user_id)
+        if not user:
+            return False, f"User {user_id} not found for RBAC check."
+
         for role_id in user.roles:
-            if role_id not in self.roles:
-                continue
+            role = self.roles.get(role_id)
+            if not role:
+                continue # Role ID present in user but role itself not loaded/defined
+            
+            for perm in role.permissions:
+                if perm.object_id == object_id and perm.action == action:
+                    return True, f"Permission '{action}' on object '{self.objects.get(object_id).name if object_id in self.objects else object_id}' granted via role '{role.name}'."
+        
+        return False, "Permission denied by RBAC policy."
     
-            role = self.roles[role_id]
-    
-            for permission in role.permissions:
-                if permission.object_id == object_id and permission.action == action:
-                    return True, "Permission granted"
-    
-        return False, "Permission denied"
-    
-    def _check_caps(self, user_id, object_id, action):
+    def _check_caps(self, user_id: str, object_id: str, action: str) -> Tuple[bool, str]:
         if self.caps.check_permission(user_id, object_id, action):
-            return True, "Permission granted by caps"
-        return False, "Permission denied by caps"
+            return True, f"Permission '{action}' on object '{self.objects.get(object_id).name if object_id in self.objects else object_id}' granted by direct capability."
+        return False, "Permission denied by direct capabilities."
     
-    def check_access(self, user_id, object_id, action):
-        '''
-        Check if a user can access an object with a given action.
-        1. Chinese Wall check
-        2. RBAC check
-        3. caps check
-        Returns True if access is allowed, False otherwise.
-        '''
+    def check_access(self, user_id: str, object_id: str, action: str) -> Tuple[bool, str]:
         try:
-            # Check Chinese Wall
             cw_allowed, cw_reason = self._check_chinese_wall(user_id, object_id)
             if not cw_allowed:
                 return False, cw_reason
-        except Exception as e:
+        except ValueError as e: # Catch specific errors like object not found
             return False, str(e)
-        
+        except Exception as e: # Catch other unexpected errors
+            print(f"Error during Chinese Wall check: {e}")
+            return False, "Error during Chinese Wall policy check."
+
         try:
-            # Check RBAC
             rbac_allowed, rbac_reason = self._check_rbac(user_id, object_id, action)
             if rbac_allowed:
                 return True, rbac_reason
         except Exception as e:
-            return False, str(e)
+            print(f"Error during RBAC check: {e}")
+            return False, "Error during RBAC policy check."
         
         try:
-            # Check direct caps permissions
             caps_allowed, caps_reason = self._check_caps(user_id, object_id, action)
             if caps_allowed:
                 return True, caps_reason
         except Exception as e:
-            return False, str(e)
+            print(f"Error during Capabilities check: {e}")
+            return False, "Error during direct capabilities policy check."
             
-        return False, "No permission found"
+        return False, "Access denied: No applicable permissions found."
     
     def grant_access(self, user_id: str, object_id: str, action: str) -> Tuple[bool, str]:
-    
         allowed, reason = self.check_access(user_id, object_id, action)
-        
         if not allowed:
             return False, f"Cannot grant access: {reason}"
         
-        # Record the access in history
-        self.record_access(user_id, object_id)
+        self.record_access(user_id, object_id) # Records access if allowed
+        return True, f"Access granted for '{action}' on object '{self.objects.get(object_id).name if object_id in self.objects else object_id}'. {reason}"
         
-        return True, "Access granted"
-        
-    def user_check_permissions(self, user_id: str) -> dict:
-        """
-        Returns a dictionary of objects and the permissions the user has on them.
-        """
-        if user_id not in self.users:
-            raise ValueError("Invalid user ID")
+    def user_check_permissions(self, user_id: str) -> Dict[str, Dict[str, Any]]:
+        user = self.users.get(user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found.")
             
-        user_permissions = {}
+        user_perms_summary: Dict[str, Dict[str, Any]] = {}
+
+        # Permissions from roles
+        for role_id in user.roles:
+            role = self.roles.get(role_id)
+            if not role: continue
+            for perm in role.permissions:
+                obj = self.objects.get(perm.object_id)
+                if not obj: continue
+                if obj.id not in user_perms_summary:
+                    user_perms_summary[obj.id] = {"name": obj.name, "permissions": set()}
+                user_perms_summary[obj.id]["permissions"].add(perm.action)
         
-        # Check permissions from roles
-        for role_id in self.users[user_id].roles:
-            if role_id not in self.roles:
-                continue
-                
-            role = self.roles[role_id]
-            for permission in role.permissions:
-                obj_id = permission.object_id
-                if obj_id not in self.objects:
-                    continue
-                    
-                if obj_id not in user_permissions:
-                    user_permissions[obj_id] = {
-                        "name": self.objects[obj_id].name,
-                        "permissions": []
-                    }
-                
-                if permission.action not in user_permissions[obj_id]["permissions"]:
-                    user_permissions[obj_id]["permissions"].append(permission.action)
+        # Direct permissions from capabilities
+        if self.caps and user_id in self.caps.matrix: # Added self.caps check
+            for obj_id, actions in self.caps.matrix[user_id].items():
+                obj = self.objects.get(obj_id)
+                if not obj: continue
+                if obj.id not in user_perms_summary:
+                    user_perms_summary[obj.id] = {"name": obj.name, "permissions": set()}
+                for action in actions:
+                    user_perms_summary[obj.id]["permissions"].add(action)
         
-        # Check direct permissions from caps
-        for obj_id in self.objects:
-            for action in ["read", "write"]:  # Simplified to only read and write
-                if self.caps.check_permission(user_id, obj_id, action):
-                    if obj_id not in user_permissions:
-                        user_permissions[obj_id] = {
-                            "name": self.objects[obj_id].name,
-                            "permissions": []
-                        }
-                    
-                    if action not in user_permissions[obj_id]["permissions"]:
-                        user_permissions[obj_id]["permissions"].append(action)
+        # Convert sets to lists for JSON serialization
+        for obj_id in user_perms_summary:
+            user_perms_summary[obj_id]["permissions"] = sorted(list(user_perms_summary[obj_id]["permissions"]))
         
-        return user_permissions
+        return user_perms_summary
+
     def get_users(self):
-        users_data = self.db.get_all_documents('users')
-        self.users = {}
-        for doc in users_data:
-            try:
-                user = User.from_dict(doc)
-                self.users[user.id] = user
-            except Exception as e:
-                print(f"Error loading user {doc.get('_id', 'unknown')}: {str(e)}")
-        
-        return [user.to_dict() for user in self.users.values()]
+        return [user.to_dict() for user in self.users.values()] 
     def get_roles(self):
         return [role.to_dict() for role in self.roles.values()]
+    def get_objects(self):
+        return [obj.to_dict() for obj in self.objects.values()]
+    def get_datasets(self):
+        return [ds.to_dict() for ds in self.datasets.values()]
+    def get_conflict_classes(self):
+        return [cc.to_dict() for cc in self.conflict_classes.values()]
         
     def get_conflict_datasets(self, conflict_class_id):
         '''
@@ -335,7 +377,6 @@ class PolicyEngine:
             raise ValueError("No conflict classes found")
         other_conflict_class = []
         cc_list = []
-        # Find the conflict class with the given ID
         for cc in self.conflict_classes:
             ds = list(self.conflict_classes[cc].datasets)
             if conflict_class_id in ds:
@@ -484,10 +525,10 @@ if __name__ == "__main__":
     print(pe.users)    
 
     # remove role from user1 (Victor)
-    pe.remoke_role_from_user(user_id=user1.id, role_id=role2.id) 
+    pe.revoke_role_from_user(user_id=user1.id, role_id=role2.id) 
     print(pe.users.get(user1.id).roles) # Should be ['role1'] since user1 has not been assigned role2
 
-    pe.remoke_role_from_user(user_id=user1.id, role_id=role1.id)
+    pe.revoke_role_from_user(user_id=user1.id, role_id=role1.id)
     print(pe.users.get(user1.id).roles) # Should be [] 
 
     print()

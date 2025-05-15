@@ -16,16 +16,22 @@ import { useAuth } from '../../contexts/AuthContext';
 function UserList({ users }) {
   const auth = useAuth();
   const isAdmin = auth?.isAdmin;
-  // console.log('auth:', auth); 
-  // console.log('isAdmin:', isAdmin); 
-  console.log('users:', users);
   
-  const filteredUsers = isAdmin 
-    ? users 
-    : users.filter(user => 
-        !user.id.toLowerCase().startsWith('admin') && 
-        !user.id.toLowerCase().startsWith('manager')
-      );
+  let filteredUsers;
+  if (!users) {
+    filteredUsers = [];
+  } else if (isAdmin) {
+    filteredUsers = users;
+  } else {
+    filteredUsers = users.filter(user => {
+      const objectId = user?._id;
+      if (typeof objectId !== 'string') {
+        return false;
+      }
+      const userId = objectId.toLowerCase();
+      return !userId.startsWith('admin') && !userId.startsWith('manager');
+    });
+  }
   
   return (
     <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: 'auto' }}>
@@ -40,8 +46,8 @@ function UserList({ users }) {
         </TableHead>
         <TableBody>
           {filteredUsers.map(user => (
-            <TableRow key={user.id}>
-              <TableCell>{user.id}</TableCell>
+            <TableRow key={user._id}>
+              <TableCell>{user._id}</TableCell>
               <TableCell>{user.name}</TableCell>
               <TableCell>
                 {user.roles && user.roles.length > 0 ? (

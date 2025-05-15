@@ -77,8 +77,8 @@ function DatasetCard({
             </TableHead>
             <TableBody>
               {datasetsArray.map(dataset => (
-                <TableRow key={dataset.id}>
-                  <TableCell>{dataset.id}</TableCell>
+                <TableRow key={dataset._id}>
+                  <TableCell>{dataset._id}</TableCell>
                   <TableCell>{dataset.name}</TableCell>
                   <TableCell>{dataset.description || 'No description'}</TableCell>
                   <TableCell>
@@ -161,10 +161,10 @@ function DatasetCard({
           ) : selectedDataset && (
             <>
               <Typography variant="body1">
-                <strong>ID:</strong> {selectedDataset.id}
+                <strong>ID:</strong> {selectedDataset._id}
               </Typography>
               <Typography variant="body1">
-                <strong>Description:</strong> {selectedDataset.description || 'No description'}
+                <strong>Description:</strong> {selectedDataset.name || 'No description'}
               </Typography>
               <Typography variant="body1" sx={{ mt: 1 }}>
                 <strong>Objects:</strong>

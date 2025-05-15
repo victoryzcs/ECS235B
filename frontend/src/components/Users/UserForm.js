@@ -70,6 +70,7 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
     try {
       const response = await fetch('http://localhost:8080/api/objects');
       const data = await response.json();
+      console.log('Objects:', data);
       setObjects(Object.values(data));
     } catch (error) {
       console.error('Error fetching objects:', error);
@@ -162,7 +163,10 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                   <InputLabel>User</InputLabel>
                   <Select
                     value={selectedUserId}
-                    onChange={e => setSelectedUserId(e.target.value)}
+                    onChange={e => {
+                      console.log('Assign Role - Selected User ID:', e.target.value);
+                      setSelectedUserId(e.target.value);
+                    }}
                     label="User"
                     required
                   >
@@ -172,13 +176,16 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                     {users
                     .filter(user => {
                       if (isManager) {
-                        return user.id.toLowerCase()!=='admin' && !user.id.toLowerCase().startsWith("manager");
+                        if (typeof user?._id !== 'string') {
+                          return false;
+                        }
+                        return user._id.toLowerCase()!=='admin' && !user._id.toLowerCase().startsWith("manager");
                       }
                       return true;
                     })
-                    .map(user => (
-                      <MenuItem key={user.id} value={user.id}>
-                        {user.id} - {user.name}
+                    .map((user, index) => (
+                      <MenuItem key={user._id != null ? user._id : `user-${index}`} value={user._id != null ? user._id : ''}>
+                        {(user._id != null ? user._id : 'N/A')} - {user.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -190,7 +197,10 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={selectedRole}
-                    onChange={e => setSelectedRole(e.target.value)}
+                    onChange={e => {
+                      console.log('Assign Role - Selected Role ID:', e.target.value);
+                      setSelectedRole(e.target.value);
+                    }}
                     label="Role"
                     required
                   >
@@ -200,13 +210,13 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                     {roles
                     .filter(role => {
                       if (isManager) {
-                        return role.name.toLowerCase() !== 'manager' && role.name.toLowerCase() !== 'admin';
+                        return role._id.toLowerCase() !== 'manager' && role._id.toLowerCase() !== 'admin';
                       }
                       return true;
                     })
-                    .map(role => (
-                      <MenuItem key={role.id} value={role.id}>
-                        {role.id} - {role.name}
+                    .map((role, index) => (
+                      <MenuItem key={role._id != null ? role._id : `role-${index}`} value={role._id != null ? role._id : ''}>
+                        {(role._id != null ? role._id : 'N/A')} - {role.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -239,8 +249,8 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                       <em>Select a user</em>
                     </MenuItem>
                     {users.map(user => (
-                      <MenuItem key={user.id} value={user.id}>
-                        {user.id} - {user.name}
+                      <MenuItem key={user._id} value={user._id}>
+                        {user._id} - {user.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -261,8 +271,8 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
                       <em>Select an object</em>
                     </MenuItem>
                     {objects.map(obj => (
-                      <MenuItem key={obj.id} value={obj.id}>
-                        {obj.id} - {obj.name}
+                      <MenuItem key={obj._id} value={obj._id}>
+                        {obj._id} - {obj.name}
                       </MenuItem>
                     ))}
                   </Select>

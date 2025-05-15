@@ -184,8 +184,8 @@ function DatasetList({ datasets }) {
             </TableHead>
             <TableBody>
               {datasetsArray.map(dataset => (
-                <TableRow key={dataset.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                  <TableCell component="th" scope="row">{dataset.id}</TableCell>
+                <TableRow key={dataset._id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                  <TableCell component="th" scope="row">{dataset._id}</TableCell>
                   <TableCell>{dataset.name}</TableCell>
                   <TableCell>
                     <Button 
