@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   TextField,
   Button,
@@ -13,7 +13,28 @@ import {
   OutlinedInput,
 } from '@mui/material';
 
-function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddConflictClass, datasets }) {
+function ConflictClassForm({ 
+  newConflictClass, 
+  setNewConflictClass, 
+  handleAddConflictClass, 
+  datasets,
+  isEditMode = false,
+  initialData = null,
+  handleUpdateConflictClass
+}) {
+  
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      setNewConflictClass({
+        class_id: initialData._id,
+        name: initialData.name,
+        datasets: initialData.datasets || []
+      });
+    } else if (!isEditMode) {
+      setNewConflictClass({ class_id: '', name: '', datasets: [] });
+    }
+  }, [isEditMode, initialData, setNewConflictClass]);
+
   const handleDatasetChange = (event) => {
     const {
       target: { value },
@@ -27,10 +48,10 @@ function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddCon
   return (
     <Box sx={{ mt: 2 }}>
       <Typography variant="h6" gutterBottom>
-        Add New Conflict Class
+        {isEditMode ? 'Edit Conflict Class' : 'Add New Conflict Class'}
       </Typography>
       
-      <form onSubmit={handleAddConflictClass}>
+      <form onSubmit={isEditMode ? (e) => { e.preventDefault(); handleUpdateConflictClass(); } : handleAddConflictClass}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
             <TextField
@@ -41,6 +62,7 @@ function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddCon
               required
               variant="outlined"
               margin="normal"
+              disabled={isEditMode}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -100,7 +122,7 @@ function ConflictClassForm({ newConflictClass, setNewConflictClass, handleAddCon
               color="primary"
               sx={{ minWidth: 150 }}
             >
-              Add Conflict Class
+              {isEditMode ? 'Update Conflict Class' : 'Add Conflict Class'}
             </Button>
           </Grid>
         </Grid>

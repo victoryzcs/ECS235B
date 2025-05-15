@@ -52,6 +52,17 @@ class CapabilityList(BaseModel):
             if not self.matrix[user_id]: # Clean up empty user entry
                 del self.matrix[user_id]
 
+    def remove_all_permissions_for_object(self, object_id: str):
+        users_to_update = []
+        for user_id, objects in self.matrix.items():
+            if object_id in objects:
+                users_to_update.append(user_id)
+        
+        for user_id in users_to_update:
+            del self.matrix[user_id][object_id]
+            if not self.matrix[user_id]: # Clean up empty user entry
+                del self.matrix[user_id]
+
     def check_permission(self, user_id: str, object_id: str, action: str) -> bool:
         return user_id in self.matrix and \
                object_id in self.matrix[user_id] and \

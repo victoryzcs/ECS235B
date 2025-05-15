@@ -9,10 +9,14 @@ import {
   Paper, 
   Chip,
   Typography,
-  Box
+  Box,
+  Button,
+  IconButton
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-function ConflictClassList({ conflictClasses }) {
+function ConflictClassList({ conflictClasses, onEdit, onDelete }) {
   return (
     <Box sx={{ mt: 2 }}>
       {conflictClasses.length === 0 ? (
@@ -25,6 +29,7 @@ function ConflictClassList({ conflictClasses }) {
                 <TableCell><strong>ID</strong></TableCell>
                 <TableCell><strong>Name</strong></TableCell>
                 <TableCell><strong>Datasets</strong></TableCell>
+                <TableCell><strong>Actions</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -49,6 +54,25 @@ function ConflictClassList({ conflictClasses }) {
                     ) : (
                       <Typography variant="body2" color="text.secondary">No datasets</Typography>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      onClick={() => onEdit(cc)} 
+                      startIcon={<EditIcon />} 
+                      sx={{ mr: 1 }}
+                    >
+                      Edit
+                    </Button>
+                    <IconButton 
+                      aria-label="delete" 
+                      size="small" 
+                      onClick={() => onDelete(cc._id)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}

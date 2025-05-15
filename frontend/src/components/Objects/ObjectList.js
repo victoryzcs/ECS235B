@@ -15,10 +15,12 @@ import {
   Tooltip
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../../contexts/AuthContext';
 import ObjectViewer from './ObjectViewer';
 
-function ObjectList({ objects: allObjects }) {
+function ObjectList({ objects: allObjects, onEditObject, onDeleteObject }) {
   const [filteredObjects, setFilteredObjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedObject, setSelectedObject] = useState(null);
@@ -166,10 +168,40 @@ function ObjectList({ objects: allObjects }) {
                             e.stopPropagation();
                             handleObjectClick(object);
                           }}
+                          sx={{ mr: 0.5 }}
                         >
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
+                      {(isAdmin || isManager) && (
+                        <Tooltip title="Edit Object">
+                          <IconButton 
+                            size="small" 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              onEditObject(object); 
+                            }}
+                            sx={{ mr: 0.5 }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {(isAdmin || isManager) && (
+                        <Tooltip title="Delete Object">
+                          <IconButton 
+                            aria-label="delete" 
+                            size="small" 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              onDeleteObject(object._id); 
+                            }}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

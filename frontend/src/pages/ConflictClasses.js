@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Alert, Snackbar } from '@mui/material';
+import { Container, Typography, Box, Alert, Snackbar, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button } from '@mui/material';
 import ConflictClassCard from '../components/ConflictClasses/ConflictClassCard';
 
 function ConflictClasses() {
@@ -10,6 +10,10 @@ function ConflictClasses() {
     name: '', 
     datasets: []
   });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingConflictClass, setEditingConflictClass] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [conflictClassToDelete, setConflictClassToDelete] = useState(null);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -60,6 +64,73 @@ function ConflictClasses() {
     });
   };
 
+  const handleEditConflictClass = (conflictClass) => {
+    setIsEditMode(true);
+    setEditingConflictClass(conflictClass);
+    setNewConflictClass({
+      class_id: conflictClass._id,
+      name: conflictClass.name,
+      datasets: conflictClass.datasets || []
+    });
+  };
+
+  const handleUpdateConflictClass = async () => {
+    if (!editingConflictClass) return;
+    try {
+      const response = await fetch(`${API_URL}/conflict_classes/${editingConflictClass._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newConflictClass.name,
+          datasets: newConflictClass.datasets
+        })
+      });
+      if (response.ok) {
+        fetchConflictClasses();
+        showNotification('Conflict class updated successfully');
+        setIsEditMode(false);
+        setEditingConflictClass(null);
+        setNewConflictClass({ class_id: '', name: '', datasets: [] });
+      } else {
+        const errorData = await response.json();
+        showNotification(`Error: ${errorData.error || 'Failed to update conflict class'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error updating conflict class:', error);
+      showNotification('Failed to update conflict class', 'error');
+    }
+  };
+
+  const openDeleteConfirmDialog = (ccId) => {
+    setConflictClassToDelete(ccId);
+    setShowDeleteConfirm(true);
+  };
+
+  const closeDeleteConfirmDialog = () => {
+    setConflictClassToDelete(null);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteConflictClass = async () => {
+    if (!conflictClassToDelete) return;
+    try {
+      const response = await fetch(`${API_URL}/conflict_classes/${conflictClassToDelete}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchConflictClasses();
+        showNotification('Conflict class deleted successfully');
+      } else {
+        const errorData = await response.json();
+        showNotification(`Error: ${errorData.error || 'Failed to delete conflict class'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting conflict class:', error);
+      showNotification('Failed to delete conflict class', 'error');
+    }
+    closeDeleteConfirmDialog();
+  };
+
   const handleAddConflictClass = async (e) => {
     e.preventDefault();
     try {
@@ -105,6 +176,11 @@ function ConflictClasses() {
         setNewConflictClass={setNewConflictClass}
         handleAddConflictClass={handleAddConflictClass}
         datasets={datasets}
+        isEditMode={isEditMode}
+        initialData={editingConflictClass}
+        handleUpdateConflictClass={handleUpdateConflictClass}
+        onEditConflictClass={handleEditConflictClass}
+        onDeleteConflictClass={openDeleteConfirmDialog}
       />
       
       <Snackbar 
@@ -121,6 +197,26 @@ function ConflictClasses() {
           {notification.message}
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={showDeleteConfirm}
+        onClose={closeDeleteConfirmDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to delete this conflict class? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteConfirmDialog}>Cancel</Button>
+          <Button onClick={handleDeleteConflictClass} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

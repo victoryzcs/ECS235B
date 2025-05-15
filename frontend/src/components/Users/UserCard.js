@@ -4,7 +4,20 @@ import UserForm from './UserForm';
 import { Card, CardContent, Typography, Divider,Button} from '@mui/material';
 
 
-function UserCard({ users, newUser, setNewUser, handleAddUser, handleAssignRole, handleGrantPermission }) {
+function UserCard({ 
+  users, 
+  // Props for UserForm (add/edit user)
+  userData, // Renamed from newUser
+  setUserData, // Renamed from setNewUser
+  handleUserFormSubmit, // Renamed from handleAddUser
+  isEditMode, // New prop for UserForm
+  // Props for UserForm (assign role, grant permission - passed through)
+  handleAssignRole, 
+  handleGrantPermission,
+  // Props for UserList
+  onEditUser,
+  onDeleteUser
+}) {
   
   const handleRefresh = () => {
     const refreshEvent = new CustomEvent('refreshUsers');
@@ -24,12 +37,17 @@ function UserCard({ users, newUser, setNewUser, handleAddUser, handleAssignRole,
           >
             Refresh
           </Button> */}
-        <UserList users={users} />
+        <UserList 
+          users={users} 
+          onEditUser={onEditUser}
+          onDeleteUser={onDeleteUser}
+        />
         <Divider sx={{ my: 2 }} />
         <UserForm 
-          newUser={newUser} 
-          setNewUser={setNewUser} 
-          handleAddUser={handleAddUser}
+          userData={userData}
+          setUserData={setUserData}
+          handleUserFormSubmit={handleUserFormSubmit}
+          isEditMode={isEditMode}
           handleAssignRole={handleAssignRole}
           handleGrantPermission={handleGrantPermission}
           users={users}
