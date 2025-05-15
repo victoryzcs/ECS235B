@@ -4,7 +4,7 @@
 - [x] Implemented Flask backend
 - [x] Add more test cases under `test_models` (especially for backend)
 - [ ] Implement authentication modules (e.g., login, registration)
-- [ ] Create frontend (React)
+- [x] Create frontend (React)
 - [ ] Finalize and polish implementation  
 - [ ] Submit by deadline (June 6, 3:00 PM)
 
