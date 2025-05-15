@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   TextField,
   Button,
@@ -10,7 +11,6 @@ import {
   FormControl,
   FormHelperText,
   Box,
-  Divider,
   Paper,
   Tabs,
   Tab
@@ -36,7 +36,21 @@ function TabPanel(props) {
   );
 }
 
-function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handleGrantPermission, users }) {
+TabPanel.propTypes = {
+  children: PropTypes.node,
+  index: PropTypes.number.isRequired,
+  value: PropTypes.number.isRequired,
+};
+
+function UserForm({ 
+  userData,
+  setUserData,
+  handleUserFormSubmit,
+  isEditMode,
+  handleAssignRole,
+  handleGrantPermission,
+  users
+}) {
   const [roles, setRoles] = useState([]);
   const [objects, setObjects] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
@@ -54,7 +68,11 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
   useEffect(() => {
     fetchRoles();
     fetchObjects();
-  }, []);
+    if (isEditMode && userData) {
+      setUserData(prevData => ({...prevData, password: ''}));
+    } else if (!isEditMode) {
+    }
+  }, [isEditMode, userData]);
   
   const fetchRoles = async () => {
     try {
@@ -90,7 +108,6 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
   };
 
   const handlePermissionSubmit = (e) => {
-
     e.preventDefault();
     console.log('Permission Data:', permissionData);
     handleGrantPermission(permissionData.userId, permissionData.objectId, permissionData.action);
@@ -117,33 +134,51 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
         </Tabs>
         
         <TabPanel value={tabValue} index={0}>
-          <form onSubmit={handleAddUser}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            {isEditMode ? 'Edit User' : 'Add New User'}
+          </Typography>
+          <form onSubmit={(e) => { e.preventDefault(); handleUserFormSubmit(); }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={5}>
+              <Grid item xs={12} md={isEditMode ? 6 : 5}>
                 <TextField
                   fullWidth
                   label="User ID"
-                  value={newUser.id}
-                  onChange={e => setNewUser({...newUser, id: e.target.value})}
+                  value={userData.id || ''}
+                  onChange={e => setUserData({...userData, id: e.target.value})}
                   required
                   variant="outlined"
                   margin="normal"
+                  disabled={isEditMode}
                 />
               </Grid>
-              <Grid item xs={12} md={5}>
+              <Grid item xs={12} md={isEditMode ? 6 : 5}>
                 <TextField
                   fullWidth
                   label="User Name"
-                  value={newUser.name}
-                  onChange={e => setNewUser({...newUser, name: e.target.value})}
+                  value={userData.name || ''}
+                  onChange={e => setUserData({...userData, name: e.target.value})}
                   required
                   variant="outlined"
                   margin="normal"
                 />
               </Grid>
-              <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
+              {isEditMode && (
+                <Grid item xs={12} md={12}>
+                  <TextField
+                    fullWidth
+                    label="New Password (optional)"
+                    type="password"
+                    value={userData.password || ''}
+                    onChange={e => setUserData({...userData, password: e.target.value})}
+                    variant="outlined"
+                    margin="normal"
+                    helperText="Leave blank to keep current password."
+                  />
+                </Grid>
+              )}
+              <Grid item xs={12} md={isEditMode ? 12 : 2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: isEditMode ? 0 : 2 }}>
                 <Button type="submit" variant="contained" color="primary">
-                  Add User
+                  {isEditMode ? 'Update User' : 'Add User'}
                 </Button>
               </Grid>
             </Grid>
@@ -313,5 +348,15 @@ function UserForm({ newUser, setNewUser, handleAddUser, handleAssignRole, handle
     </Box>
   );
 }
+
+UserForm.propTypes = {
+  userData: PropTypes.object.isRequired,
+  setUserData: PropTypes.func.isRequired,
+  handleUserFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool,
+  handleAssignRole: PropTypes.func.isRequired,
+  handleGrantPermission: PropTypes.func.isRequired,
+  users: PropTypes.array.isRequired,
+};
 
 export default UserForm;

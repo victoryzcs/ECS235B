@@ -78,6 +78,40 @@ class PolicyEngine:
         self.roles[role.id] = role
         return role
     
+    def update_role(self, role_id: str, name: str = None):
+        role = self.roles.get(role_id)
+        if not role:
+            return None # Or raise Exception("Role not found")
+
+        updated = False
+        if name is not None and role.name != name:
+            role.name = name
+            updated = True
+        
+        # Permissions are managed via add_permission_to_role / revoke_permission_from_role
+
+        if updated:
+            role.save()
+            self.roles[role.id] = role # Update cache
+        return role
+
+    def delete_role(self, role_id: str):
+        role = self.roles.get(role_id)
+        if not role:
+            return False # Or raise Exception("Role not found")
+
+        # Prevent deletion if the role is assigned to any user
+        for user in self.users.values():
+            if role_id in user.roles:
+                raise Exception(f"Role {role_id} ({role.name}) cannot be deleted because it is assigned to user {user.id} ({user.name}). Unassign the role first.")
+
+        # If a role is deleted, its permissions become meaningless with it, so they are effectively gone.
+        # The Role model itself stores its permissions. Deleting the role document deletes them.
+
+        role.delete() # Assumes Role model has a delete method
+        del self.roles[role_id] # Remove from cache
+        return True
+    
     def add_object(self, obj_id: str, name: str, dataset_id: str):
         if obj_id in self.objects:
             raise Exception(f"Object {obj_id} already exists.")
@@ -100,6 +134,79 @@ class PolicyEngine:
             dataset.save()
         return obj
     
+    def update_object(self, obj_id: str, name: str = None, dataset_id: str = None):
+        obj = self.objects.get(obj_id)
+        if not obj:
+            return None # Or raise Exception("Object not found")
+
+        updated = False
+        original_dataset_id = obj.dataset
+
+        if name is not None and obj.name != name:
+            obj.name = name
+            updated = True
+        
+        if dataset_id is not None and obj.dataset != dataset_id:
+            if dataset_id not in self.datasets:
+                raise Exception(f"New dataset {dataset_id} does not exist.")
+            obj.dataset = dataset_id
+            # Re-evaluate conflict_class based on the new dataset
+            new_conflict_class_id = None
+            for cc in self.conflict_classes.values():
+                if dataset_id in cc.datasets:
+                    new_conflict_class_id = cc.id
+                    break
+            if obj.conflict_class != new_conflict_class_id:
+                obj.conflict_class = new_conflict_class_id
+            updated = True
+
+        if updated:
+            obj.save()
+            self.objects[obj.id] = obj # Update cache
+
+            if dataset_id is not None and original_dataset_id != dataset_id:
+                if original_dataset_id and original_dataset_id in self.datasets:
+                    old_dataset = self.datasets[original_dataset_id]
+                    if obj_id in old_dataset.objects:
+                        old_dataset.objects.remove(obj_id)
+                        old_dataset.save()
+                
+                new_dataset = self.datasets[dataset_id]
+                if obj_id not in new_dataset.objects:
+                    new_dataset.objects.append(obj_id)
+                    new_dataset.save()
+        return obj
+
+    def delete_object(self, obj_id: str):
+        obj = self.objects.get(obj_id)
+        if not obj:
+            return False # Or raise Exception("Object not found")
+
+        # 1. Remove from its dataset's list of objects
+        dataset_id = obj.dataset
+        if dataset_id and dataset_id in self.datasets:
+            dataset = self.datasets[dataset_id]
+            if obj_id in dataset.objects:
+                dataset.objects.remove(obj_id)
+                dataset.save()
+
+        # 2. Remove from any role permissions
+        for role in self.roles.values():
+            original_len = len(role.permissions)
+            role.permissions = [p for p in role.permissions if p.object_id != obj_id]
+            if len(role.permissions) != original_len:
+                role.save()
+
+        # 3. Remove from capabilities list
+        if self.caps:
+            self.caps.remove_all_permissions_for_object(obj_id)
+            self.caps.save()
+
+        # 4. Delete the object itself
+        obj.delete()
+        del self.objects[obj_id] # Remove from cache
+        return True
+
     def add_dataset(self, dataset_id: str, name: str, description: str = None):
         if dataset_id in self.datasets:
             raise Exception(f"Dataset {dataset_id} already exists.")
@@ -107,6 +214,47 @@ class PolicyEngine:
         dataset.save()
         self.datasets[dataset.id] = dataset
         return dataset
+    
+    def update_dataset(self, dataset_id: str, name: str = None, description: str = None):
+        ds = self.datasets.get(dataset_id)
+        if not ds:
+            return None # Or raise Exception("Dataset not found")
+
+        updated = False
+        if name is not None and ds.name != name:
+            ds.name = name
+            updated = True
+        
+        if description is not None and ds.description != description:
+            ds.description = description
+            updated = True
+        
+        # Note: Managing dataset.objects list (if it contains object actual instances or full dicts)
+        # would be more complex. Currently, Dataset model seems to store object_ids.
+        # If we need to update which objects belong to a dataset, it's usually done via object creation/update.
+
+        if updated:
+            ds.save()
+            self.datasets[ds.id] = ds # Update cache
+        return ds
+
+    def delete_dataset(self, dataset_id: str):
+        ds = self.datasets.get(dataset_id)
+        if not ds:
+            return False # Or raise Exception("Dataset not found")
+
+        # Prevent deletion if the dataset contains objects
+        # This requires checking all objects in self.objects
+        if any(obj.dataset == dataset_id for obj in self.objects.values()):
+            raise Exception(f"Dataset {dataset_id} cannot be deleted because it contains objects. Remove objects first.")
+
+        # Also, consider implications for Conflict Classes that might reference this dataset
+        # For now, we are not cascading deletes or disassociations from conflict classes here.
+        # This might be a future enhancement or a manual step required by an admin.
+        
+        ds.delete()
+        del self.datasets[dataset_id]
+        return True
     
     def add_conflict_class(self, cc_id: str, name: str, dataset_ids: List[str]):
         if cc_id in self.conflict_classes:
@@ -118,6 +266,43 @@ class PolicyEngine:
         cc.save()
         self.conflict_classes[cc.id] = cc
         return cc
+    
+    def update_conflict_class(self, cc_id: str, name: str = None, dataset_ids: List[str] = None):
+        cc = self.conflict_classes.get(cc_id)
+        if not cc:
+            return None  # Or raise Exception("Conflict Class not found")
+
+        updated = False
+        if name is not None and cc.name != name:
+            cc.name = name
+            updated = True
+        
+        if dataset_ids is not None:
+            # Validate dataset_ids
+            for ds_id in dataset_ids:
+                if ds_id not in self.datasets:
+                    raise Exception(f"Dataset {ds_id} for conflict class update does not exist.")
+            if set(cc.datasets) != set(dataset_ids): # Check if there's an actual change
+                cc.datasets = dataset_ids
+                updated = True
+
+        if updated:
+            cc.save() # Assumes ConflictClass has a save method
+            self.conflict_classes[cc.id] = cc # Update cache
+        return cc
+
+    def delete_conflict_class(self, cc_id: str):
+        cc = self.conflict_classes.get(cc_id)
+        if not cc:
+            return False # Or raise Exception("Conflict Class not found")
+
+        # Optional: Add logic to check if this conflict class is in use by any objects
+        # and prevent deletion or handle accordingly.
+        # For now, we will directly delete.
+
+        cc.delete() # Assumes ConflictClass has a delete method
+        del self.conflict_classes[cc_id] # Remove from cache
+        return True
     
     def assign_role_to_user(self, user_id: str, role_id: str):
         user = self.users.get(user_id)
@@ -404,6 +589,44 @@ class PolicyEngine:
         Returns a list of conflict classes that the user belongs to.
         """
 
+    def update_user(self, user_id: str, name: str = None, password_str: str = None):
+        user = self.users.get(user_id)
+        if not user:
+            return None # Or raise Exception("User not found")
+
+        updated = False
+        if name is not None and user.name != name:
+            user.name = name
+            updated = True
+        
+        if password_str is not None and password_str != "": 
+            user.password_hash = hash_password_util(password_str)
+            updated = True
+        
+        if updated:
+            user.save()
+            self.users[user.id] = user # Update cache
+        return user
+
+    def delete_user(self, user_id: str):
+        user = self.users.get(user_id)
+        if not user:
+            return False # Or raise Exception("User not found")
+
+        if user_id == 'admin':
+            raise Exception("Cannot delete the primary admin user.")
+
+        if self.caps and user_id in self.caps.matrix:
+            del self.caps.matrix[user_id]
+            self.caps.save()
+
+        if user_id in self.user_access_history:
+            del self.user_access_history[user_id]
+            BaseModel.get_access_history_collection().delete_one({'_id': user_id})
+
+        user.delete()
+        del self.users[user_id] 
+        return True
 
 if __name__ == "__main__":
     pe = PolicyEngine()

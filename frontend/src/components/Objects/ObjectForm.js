@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   TextField,
   Button,
@@ -14,11 +15,25 @@ import {
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 
-function ObjectForm({ newObject, setNewObject, handleAddObject, datasets, conflictClasses }) {
+function ObjectForm({ 
+  objectData,
+  setObjectData,
+  handleFormSubmit,
+  isEditMode,
+  datasets,
+  conflictClasses
+}) {
   const auth = useAuth();
   const isAdmin = auth?.isAdmin;
   const isManager = auth?.isManager;
   
+  useEffect(() => {
+    // If in edit mode and objectData (initial data for edit) is provided,
+    // it's already set by the parent. No specific action needed here for pre-filling
+    // unless we need to transform it.
+    // If switching from edit to add, parent should reset objectData.
+  }, [isEditMode, objectData]);
+
   if (!isAdmin && !isManager) {
     return (
       <Box sx={{ mt: 2 }}>
@@ -32,75 +47,66 @@ function ObjectForm({ newObject, setNewObject, handleAddObject, datasets, confli
   return (
     <Box sx={{ mt: 2 }}>
       <Typography variant="h6" gutterBottom>
-        Add New Object
+        {isEditMode ? 'Edit Object' : 'Add New Object'}
       </Typography>
       
-      <form onSubmit={handleAddObject}>
+      <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={3}>
             <TextField
               fullWidth
-              label="ID"
-              value={newObject._id}
-              onChange={e => setNewObject({...newObject, id: e.target.value})}
+              label="Object ID"
+              value={objectData.id || ''}
+              onChange={e => setObjectData({...objectData, id: e.target.value})}
               required
               variant="outlined"
               margin="normal"
+              disabled={isEditMode}
             />
           </Grid>
           <Grid item xs={12} md={3}>
             <TextField
               fullWidth
-              label="Name"
-              value={newObject.name}
-              onChange={e => setNewObject({...newObject, name: e.target.value})}
+              label="Object Name"
+              value={objectData.name || ''}
+              onChange={e => setObjectData({...objectData, name: e.target.value})}
               required
               variant="outlined"
               margin="normal"
             />
           </Grid>
           <Grid item xs={12} md={3}>
-            <FormControl fullWidth variant="outlined" margin="normal" >
-              <InputLabel id="dataset-select-label">Dataset *</InputLabel>
+            <FormControl fullWidth variant="outlined" margin="normal" required>
+              <InputLabel>Dataset</InputLabel>
               <Select
-                labelId="dataset-select-label"
-                value={newObject.dataset}
-                onChange={e => setNewObject({...newObject, dataset: e.target.value})}
-                label="Dataset *"
-                required
+                value={objectData.dataset || ''}
+                onChange={e => setObjectData({...objectData, dataset: e.target.value})}
               >
                 <MenuItem value="">
                   <em>Select a dataset</em>
                 </MenuItem>
-                {datasets.map(dataset => (
-                  <MenuItem key={dataset._id} value={dataset._id}>
-                    {dataset._id} - {dataset.name}
+                {datasets.map(ds => (
+                  <MenuItem key={ds._id} value={ds._id}>
+                    {ds._id} - {ds.name}
                   </MenuItem>
                 ))}
               </Select>
-              <FormHelperText>Required - Object must belong to a dataset</FormHelperText>
+              <FormHelperText>Select the dataset this object belongs to.</FormHelperText>
             </FormControl>
           </Grid>
-          {/* <Grid item xs={12} md={3}>
-            <FormControl fullWidth variant="outlined" margin="normal">
-              <InputLabel>Conflict Class</InputLabel>
-              <Select
-                value={newObject.conflict_class}
-                onChange={e => setNewObject({...newObject, conflict_class: e.target.value})}
-                label="Conflict Class"
-              >
-                <MenuItem value="">
-                  <em>None</em>
-                </MenuItem>
-                {conflictClasses.map(cc => (
-                  <MenuItem key={cc.class_id} value={cc.class_id}>
-                    {cc.class_id} - {cc.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>Optional</FormHelperText>
-            </FormControl>
-          </Grid> */}
+          {isEditMode && objectData.conflict_class && (
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                label="Conflict Class (Auto)"
+                value={objectData.conflict_class}
+                disabled
+                variant="outlined"
+                margin="normal"
+                helperText="Determined by selected dataset"
+              />
+            </Grid>
+          )}
           <Grid item xs={12} sx={{ mt: 2, textAlign: 'center' }}>
             <Button 
               type="submit" 
@@ -108,7 +114,7 @@ function ObjectForm({ newObject, setNewObject, handleAddObject, datasets, confli
               color="primary"
               sx={{ minWidth: 150 }}
             >
-              Add Object
+              {isEditMode ? 'Update Object' : 'Add Object'}
             </Button>
           </Grid>
         </Grid>
@@ -116,5 +122,14 @@ function ObjectForm({ newObject, setNewObject, handleAddObject, datasets, confli
     </Box>
   );
 }
+
+ObjectForm.propTypes = {
+  objectData: PropTypes.object.isRequired,
+  setObjectData: PropTypes.func.isRequired,
+  handleFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool.isRequired,
+  datasets: PropTypes.array.isRequired,
+  conflictClasses: PropTypes.array.isRequired,
+};
 
 export default ObjectForm;

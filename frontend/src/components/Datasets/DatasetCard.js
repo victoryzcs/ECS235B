@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { 
   Paper, 
   TextField, 
@@ -21,8 +22,11 @@ import {
   List,
   ListItem,
   ListItemText,
-  Box
+  Box,
+  IconButton
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function DatasetCard({ 
   datasets, 
@@ -30,6 +34,8 @@ function DatasetCard({
   setNewDataset, 
   handleAddDataset,
   handleViewDataset,
+  onEditDataset,
+  onDeleteDataset,
   selectedDataset,
   conflictWarning,
   setConflictWarning,
@@ -37,9 +43,27 @@ function DatasetCard({
   confirmAccessDespiteConflicts,
   loading,
   accessDenied,
-  isManager
+  isManager,
+  isEditMode,
+  initialFormDataset,
+  handleUpdateDataset
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  useEffect(() => {
+    if (isEditMode && initialFormDataset) {
+      setNewDataset({
+        id: initialFormDataset._id,
+        name: initialFormDataset.name,
+        description: initialFormDataset.description || '',
+        objects: initialFormDataset.objects || []
+      });
+    } else if (!isEditMode) {
+      // Reset form if not in edit mode (e.g., after an edit is completed)
+      // setNewDataset({ id: '', name: '', description: '', objects: [] });
+      // This reset is better handled in the parent component (Datasets.js) after add/update actions
+    }
+  }, [isEditMode, initialFormDataset, setNewDataset]);
   
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -83,13 +107,31 @@ function DatasetCard({
                   <TableCell>{dataset.description || 'No description'}</TableCell>
                   <TableCell>
                     <Button 
-                      variant="contained" 
+                      variant="outlined"
                       color="primary" 
                       size="small"
                       onClick={() => onViewClick(dataset)}
+                      sx={{ mr: 1 }}
                     >
                       VIEW
                     </Button>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      onClick={() => onEditDataset(dataset)} 
+                      startIcon={<EditIcon />} 
+                      sx={{ mr: 1 }}
+                    >
+                      Edit
+                    </Button>
+                    <IconButton 
+                      aria-label="delete" 
+                      size="small" 
+                      onClick={() => onDeleteDataset(dataset._id)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -192,10 +234,10 @@ function DatasetCard({
         </DialogActions>
       </Dialog>
       <Typography variant="h6" gutterBottom>
-        Add New Dataset
+        {isEditMode ? 'Edit Dataset' : 'Add New Dataset'}
       </Typography>
       
-      <form onSubmit={handleAddDataset}>
+      <form onSubmit={isEditMode ? (e) => { e.preventDefault(); handleUpdateDataset(); } : handleAddDataset}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
             <TextField
@@ -206,6 +248,7 @@ function DatasetCard({
               required
               variant="outlined"
               margin="normal"
+              disabled={isEditMode}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -231,7 +274,7 @@ function DatasetCard({
           </Grid>
           <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button type="submit" variant="contained" color="primary">
-              Add Dataset
+              {isEditMode ? 'Update Dataset' : 'Add Dataset'}
             </Button>
           </Grid>
         </Grid>
@@ -242,5 +285,26 @@ function DatasetCard({
     
   );
 }
+
+DatasetCard.propTypes = {
+  datasets: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
+  newDataset: PropTypes.object.isRequired,
+  setNewDataset: PropTypes.func.isRequired,
+  handleAddDataset: PropTypes.func.isRequired,
+  handleViewDataset: PropTypes.func.isRequired,
+  onEditDataset: PropTypes.func.isRequired,
+  onDeleteDataset: PropTypes.func.isRequired,
+  selectedDataset: PropTypes.object,
+  conflictWarning: PropTypes.bool.isRequired,
+  setConflictWarning: PropTypes.func.isRequired,
+  conflictingDatasetNames: PropTypes.string,
+  confirmAccessDespiteConflicts: PropTypes.func.isRequired,
+  loading: PropTypes.bool.isRequired,
+  accessDenied: PropTypes.bool.isRequired,
+  isManager: PropTypes.bool,
+  isEditMode: PropTypes.bool.isRequired,
+  initialFormDataset: PropTypes.object,
+  handleUpdateDataset: PropTypes.func.isRequired,
+};
 
 export default DatasetCard;

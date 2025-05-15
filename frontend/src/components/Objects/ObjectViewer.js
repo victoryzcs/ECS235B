@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   Dialog,
   DialogTitle,
@@ -110,23 +111,24 @@ function ObjectViewer({ open, onClose, object, onAccessRecorded }) {
               {error}
             </Alert>
           )}
-          {loading ? (
+          {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
               <CircularProgress />
             </Box>
-          ) : hasAccess ? (
+          )}
+          {!loading && hasAccess && (
             <>
               <Typography variant="h6" gutterBottom>
                 {object?.name}
               </Typography>
-              <Typography variant="body1" color="text.secondary" paragraph>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                 ID: {object?._id}
               </Typography>
-              <Typography variant="body1" color="text.secondary" paragraph>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                 Dataset: {object?.dataset}
               </Typography>
               {object?.conflict_class && (
-                <Typography variant="body1" color="text.secondary" paragraph>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                   Conflict Class: {object?.conflict_class}
                 </Typography>
               )}
@@ -137,8 +139,6 @@ function ObjectViewer({ open, onClose, object, onAccessRecorded }) {
                 </Typography>
               </Box>
             </>
-          ) : (
-            null
           )}
         </Box>
       </DialogContent>
@@ -148,5 +148,17 @@ function ObjectViewer({ open, onClose, object, onAccessRecorded }) {
     </Dialog>
   );
 }
+
+ObjectViewer.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  object: PropTypes.shape({
+    _id: PropTypes.string,
+    name: PropTypes.string,
+    dataset: PropTypes.string,
+    conflict_class: PropTypes.string,
+  }),
+  onAccessRecorded: PropTypes.func.isRequired,
+};
 
 export default ObjectViewer; 

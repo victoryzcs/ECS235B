@@ -5,11 +5,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from flask import Flask, Blueprint, request, jsonify
 from flask_cors import CORS
 from models.policy_engine import PolicyEngine
-from models.user import User
 from models.object import Object as PolicyObject
 from models.role import Role
-from models.dataset import Dataset
-from models.conflict_class import ConflictClass
 from backend.auth import auth, ensure_admin_exists
 
 app = Flask(__name__)
@@ -36,6 +33,30 @@ def add_user_route():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@general_api.route('/users/<user_id>', methods=['PUT'])
+def update_user_route(user_id: str):
+    data = request.json
+    try:
+        updated_user = policy_engine.update_user(
+            user_id=user_id,
+            name=data.get('name'),
+            password_str=data.get('password') # Optional: allow password update
+        )
+        if updated_user:
+            return jsonify({"message": f"User {user_id} updated successfully", "user": updated_user.to_dict()}), 200
+        return jsonify({"error": f"User {user_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@general_api.route('/users/<user_id>', methods=['DELETE'])
+def delete_user_route(user_id: str):
+    try:
+        if policy_engine.delete_user(user_id):
+            return jsonify({"message": f"User {user_id} deleted successfully"}), 200
+        return jsonify({"error": f"User {user_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 @general_api.route('/objects', methods=['GET'])
 def get_objects():
     objects_data = policy_engine.get_objects()
@@ -54,6 +75,30 @@ def add_object_route():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@general_api.route('/objects/<object_id>', methods=['PUT'])
+def update_object_route(object_id: str):
+    data = request.json
+    try:
+        updated_obj = policy_engine.update_object(
+            obj_id=object_id,
+            name=data.get('name'),
+            dataset_id=data.get('dataset')
+        )
+        if updated_obj:
+            return jsonify({"message": f"Object {object_id} updated successfully", "object": updated_obj.to_dict()}), 200
+        return jsonify({"error": f"Object {object_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@general_api.route('/objects/<object_id>', methods=['DELETE'])
+def delete_object_route(object_id: str):
+    try:
+        if policy_engine.delete_object(object_id):
+            return jsonify({"message": f"Object {object_id} deleted successfully"}), 200
+        return jsonify({"error": f"Object {object_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 @general_api.route('/roles', methods=['GET'])
 def get_roles():
     roles_data = policy_engine.get_roles()
@@ -68,6 +113,30 @@ def add_role_route():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@general_api.route('/roles/<role_id>', methods=['PUT'])
+def update_role_route(role_id: str):
+    data = request.json
+    try:
+        updated_role = policy_engine.update_role(
+            role_id=role_id,
+            name=data.get('name')
+            # Permissions for roles are managed by a separate endpoint
+        )
+        if updated_role:
+            return jsonify({"message": f"Role {role_id} updated successfully", "role": updated_role.to_dict()}), 200
+        return jsonify({"error": f"Role {role_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@general_api.route('/roles/<role_id>', methods=['DELETE'])
+def delete_role_route(role_id: str):
+    try:
+        if policy_engine.delete_role(role_id):
+            return jsonify({"message": f"Role {role_id} deleted successfully"}), 200
+        return jsonify({"error": f"Role {role_id} not found or cannot be deleted."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 @general_api.route('/datasets', methods=['GET'])
 def get_datasets():
     datasets_data = policy_engine.get_datasets()
@@ -79,6 +148,31 @@ def add_dataset_route():
     try:
         dataset = policy_engine.add_dataset(dataset_id=data.get('id'), name=data.get('name'),)
         return jsonify({"message": f"Dataset {dataset.id} added successfully", "dataset": dataset.to_dict()}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@general_api.route('/datasets/<dataset_id>', methods=['PUT'])
+def update_dataset_route(dataset_id: str):
+    data = request.json
+    try:
+        updated_ds = policy_engine.update_dataset(
+            dataset_id=dataset_id,
+            name=data.get('name'),
+            description=data.get('description')
+            # objects will be managed via object endpoints primarily
+        )
+        if updated_ds:
+            return jsonify({"message": f"Dataset {dataset_id} updated successfully", "dataset": updated_ds.to_dict()}), 200
+        return jsonify({"error": f"Dataset {dataset_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@general_api.route('/datasets/<dataset_id>', methods=['DELETE'])
+def delete_dataset_route(dataset_id: str):
+    try:
+        if policy_engine.delete_dataset(dataset_id):
+            return jsonify({"message": f"Dataset {dataset_id} deleted successfully"}), 200
+        return jsonify({"error": f"Dataset {dataset_id} not found or cannot be deleted (e.g., contains objects)"}), 404 # Or 400/409 if specific logic added
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -97,6 +191,30 @@ def add_conflict_class_route():
             dataset_ids=data.get('datasets', [])
         )
         return jsonify({"message": f"Conflict class {cc.id} added successfully", "conflict_class": cc.to_dict()}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@general_api.route('/conflict_classes/<cc_id>', methods=['PUT'])
+def update_conflict_class_route(cc_id: str):
+    data = request.json
+    try:
+        updated_cc = policy_engine.update_conflict_class(
+            cc_id=cc_id,
+            name=data.get('name'),
+            dataset_ids=data.get('datasets')
+        )
+        if updated_cc:
+            return jsonify({"message": f"Conflict class {cc_id} updated successfully", "conflict_class": updated_cc.to_dict()}), 200
+        return jsonify({"error": f"Conflict class {cc_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@general_api.route('/conflict_classes/<cc_id>', methods=['DELETE'])
+def delete_conflict_class_route(cc_id: str):
+    try:
+        if policy_engine.delete_conflict_class(cc_id):
+            return jsonify({"message": f"Conflict class {cc_id} deleted successfully"}), 200
+        return jsonify({"error": f"Conflict class {cc_id} not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -218,6 +336,7 @@ def initialize_system():
                 print(f"Error adding predefined role {role_data['name']}: {str(e)}")
     print("System initialization complete.")
 
+initialize_system()
 
 @app.route('/')
 def index():
@@ -225,4 +344,4 @@ def index():
 
 if __name__ == "__main__":
     print("Starting Flask application...")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=False)

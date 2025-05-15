@@ -1,10 +1,22 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import UserList from './UserList';
 import UserForm from './UserForm';
 import { Card, CardContent, Typography, Divider,Button} from '@mui/material';
 
 
-function UserCard({ users, newUser, setNewUser, handleAddUser, handleAssignRole, handleGrantPermission }) {
+function UserCard({ 
+  users, 
+  userData,   
+  setUserData, 
+  handleUserFormSubmit, 
+  isEditMode, 
+  handleAssignRole, 
+  handleGrantPermission,
+  // Props for UserList
+  onEditUser,
+  onDeleteUser
+}) {
   
   const handleRefresh = () => {
     const refreshEvent = new CustomEvent('refreshUsers');
@@ -24,12 +36,17 @@ function UserCard({ users, newUser, setNewUser, handleAddUser, handleAssignRole,
           >
             Refresh
           </Button> */}
-        <UserList users={users} />
+        <UserList 
+          users={users} 
+          onEditUser={onEditUser}
+          onDeleteUser={onDeleteUser}
+        />
         <Divider sx={{ my: 2 }} />
         <UserForm 
-          newUser={newUser} 
-          setNewUser={setNewUser} 
-          handleAddUser={handleAddUser}
+          userData={userData}
+          setUserData={setUserData}
+          handleUserFormSubmit={handleUserFormSubmit}
+          isEditMode={isEditMode}
           handleAssignRole={handleAssignRole}
           handleGrantPermission={handleGrantPermission}
           users={users}
@@ -38,5 +55,17 @@ function UserCard({ users, newUser, setNewUser, handleAddUser, handleAssignRole,
     </Card>
   );
 }
+
+UserCard.propTypes = {
+  users: PropTypes.array.isRequired,
+  userData: PropTypes.object.isRequired,
+  setUserData: PropTypes.func.isRequired,
+  handleUserFormSubmit: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool,
+  handleAssignRole: PropTypes.func.isRequired,
+  handleGrantPermission: PropTypes.func.isRequired,
+  onEditUser: PropTypes.func.isRequired,
+  onDeleteUser: PropTypes.func.isRequired,
+};
 
 export default UserCard;

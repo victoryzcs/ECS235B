@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { 
   Table, 
   TableBody, 
@@ -9,11 +10,15 @@ import {
   Paper, 
   Chip,
   Box,
-  Tooltip
+  Tooltip,
+  Button,
+  IconButton
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../../contexts/AuthContext';
 
-function UserList({ users }) {
+function UserList({ users, onEditUser, onDeleteUser }) {
   const auth = useAuth();
   const isAdmin = auth?.isAdmin;
   
@@ -42,6 +47,7 @@ function UserList({ users }) {
             <TableCell><strong>Name</strong></TableCell>
             <TableCell><strong>Role</strong></TableCell>
             <TableCell><strong>Access History</strong></TableCell>
+            <TableCell><strong>Actions</strong></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -77,6 +83,27 @@ function UserList({ users }) {
                   'No access history'
                 )}
               </TableCell>
+              <TableCell>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  onClick={() => onEditUser(user)} 
+                  startIcon={<EditIcon />} 
+                  sx={{ mr: 1 }}
+                  disabled={user._id === 'admin'}
+                >
+                  Edit
+                </Button>
+                <IconButton 
+                  aria-label="delete" 
+                  size="small" 
+                  onClick={() => onDeleteUser(user._id)}
+                  color="error"
+                  disabled={user._id === 'admin'}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -84,5 +111,11 @@ function UserList({ users }) {
     </TableContainer>
   );
 }
+
+UserList.propTypes = {
+  users: PropTypes.array,
+  onEditUser: PropTypes.func.isRequired,
+  onDeleteUser: PropTypes.func.isRequired,
+};
 
 export default UserList;
