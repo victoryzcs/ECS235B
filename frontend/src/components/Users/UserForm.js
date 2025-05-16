@@ -283,7 +283,9 @@ function UserForm({
                     <MenuItem value="">
                       <em>Select a user</em>
                     </MenuItem>
-                    {users.map(user => (
+                    {users
+                    .filter(user => !user.roles.includes("admin") && !user.roles.includes("manager")).
+                    map(user => (
                       <MenuItem key={user._id} value={user._id}>
                         {user._id} - {user.name}
                       </MenuItem>
