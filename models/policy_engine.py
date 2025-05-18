@@ -628,6 +628,25 @@ class PolicyEngine:
         del self.users[user_id] 
         return True
 
+    def change_user_password(self, user_id: str, current_password_str: str, new_password_str: str) -> bool:
+        user = self.users.get(user_id)
+        if not user:
+            
+            if current_password_str: # only try to hash if there is something to hash
+                User.verify_password_util("dummy_hash_should_not_match", current_password_str)
+            return False
+
+        if not user.check_password(current_password_str):
+            return False
+
+        if not new_password_str: # Prevent setting an empty password
+            raise ValueError("New password cannot be empty.")
+
+        user.password_hash = hash_password_util(new_password_str)
+        user.save()
+        self.users[user.id] = user # Update the in-memory cache
+        return True
+
 if __name__ == "__main__":
     pe = PolicyEngine()
     

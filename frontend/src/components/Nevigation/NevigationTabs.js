@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button, Box, Typography } from '@mui/material';
+import { Button, Box, Typography, IconButton } from '@mui/material';
+import SettingsIcon from '@mui/icons-material/Settings';
 import './NevigationTabs.css';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,6 +23,10 @@ function NevigationTabs() {
             logout();
             navigate('/login');
         }
+    };
+
+    const handleChangePassword = () => {
+        navigate('/change-password');
     };
 
     return (
@@ -120,9 +125,21 @@ function NevigationTabs() {
             </Box>
             
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ mr: 2 }}>
-                    {currentUser?.name} ({currentUser?.role})
-                </Typography>
+                {currentUser && (
+                    <>
+                        <Typography variant="body2" sx={{ mr: 1 }}>
+                            {currentUser?.name} ({currentUser?.role})
+                        </Typography>
+                        <IconButton 
+                            color="inherit" 
+                            onClick={handleChangePassword}
+                            title="Change Password"
+                            sx={{ mr: 1 }}
+                        >
+                            <SettingsIcon />
+                        </IconButton>
+                    </>
+                )}
                 <Button 
                     variant='outlined' 
                     color="secondary"

@@ -7,7 +7,7 @@ from flask_cors import CORS
 from models.policy_engine import PolicyEngine
 from models.object import Object as PolicyObject
 from models.role import Role
-from backend.auth import auth, ensure_admin_exists
+from backend.auth import auth, ensure_admin_exists, login_required, get_current_user_id
 
 app = Flask(__name__)
 
@@ -311,6 +311,30 @@ def get_conflict_datasets_route(dataset_id: str):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@general_api.route('/user/change-password', methods=['POST'])
+@login_required
+def change_password_route():
+    data = request.json
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    user_id = get_current_user_id()
+
+    if not user_id:
+        return jsonify({"error": "User not authenticated"}), 401
+    if not current_password or not new_password:
+        return jsonify({"error": "Missing current_password or new_password"}), 400
+
+    try:
+        success = policy_engine.change_user_password(user_id, current_password, new_password)
+        if success:
+            return jsonify({"message": "Password changed successfully"}), 200
+        else:
+            return jsonify({"error": "Failed to change password. Current password might be incorrect or user not found."}), 400
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
 app.register_blueprint(general_api)
 app.register_blueprint(auth)
 CORS(app)
@@ -336,7 +360,7 @@ def initialize_system():
                 print(f"Error adding predefined role {role_data['name']}: {str(e)}")
     print("System initialization complete.")
 
-initialize_system()
+#initialize_system()
 
 @app.route('/')
 def index():
@@ -344,4 +368,4 @@ def index():
 
 if __name__ == "__main__":
     print("Starting Flask application...")
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    app.run(host='0.0.0.0', port=8080, debug=True)

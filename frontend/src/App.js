@@ -13,6 +13,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Signup from './pages/Signup';
+import ChangePasswordForm from './components/Auth/ChangePasswordForm';
 // Create a custom theme
 const theme = createTheme({
   palette: {
@@ -82,6 +83,12 @@ function App() {
                     <>
                       <NevigationTabs />
                       <ConflictClasses />
+                    </>
+                  } />
+                  <Route path="/change-password" element={
+                    <>
+                      <NevigationTabs />
+                      <ChangePasswordForm />
                     </>
                   } />
                 </Route>

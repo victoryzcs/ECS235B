@@ -60,4 +60,26 @@ Access is granted only if all applicable checks pass.
 - [ ] When a user signed up, the Users Management portal is not updated.
 - [ ] User's access history is not updated.
 - [ ] Conflict class doesn't work properly.
+
+## Configuring Ports
+
+### Frontend Port
+
+The frontend development server port can be configured by modifying the `start` script in the `frontend/package.json` file.
+
+By default, it might be set to port 3000. To change it (e.g., to 3001):
+
+1. Open `frontend/package.json`.
+2. Locate the `scripts` section.
+3. Modify the `start` script. For example, to set the port to 3001:
+   ```json
+   "scripts": {
+     "start": "PORT=3001 react-scripts start",
+     // ... other scripts
+   },
+   ```
+4. Save the file.
+5. Restart the frontend development server if it's running for the changes to take effect.
+
+Alternatively, for `react-scripts` based projects, you can create a `.env` file in the `frontend` directory and add the line `PORT=your_desired_port` (e.g., `PORT=3001`). However, ensure this file is not overly restricted by `.gitignore` rules if you choose this method for port configuration specifically.
     
