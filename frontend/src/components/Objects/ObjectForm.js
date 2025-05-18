@@ -91,7 +91,7 @@ function ObjectForm({
                   </MenuItem>
                 ))}
               </Select>
-              <FormHelperText>Select the dataset this object belongs to.</FormHelperText>
+              <FormHelperText>Select the dataset this object belongs to</FormHelperText>
             </FormControl>
           </Grid>
           {isEditMode && objectData.conflict_class && (
