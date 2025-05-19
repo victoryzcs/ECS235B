@@ -360,7 +360,7 @@ def initialize_system():
                 print(f"Error adding predefined role {role_data['name']}: {str(e)}")
     print("System initialization complete.")
 
-#initialize_system()
+initialize_system()
 
 @app.route('/')
 def index():
@@ -368,4 +368,4 @@ def index():
 
 if __name__ == "__main__":
     print("Starting Flask application...")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=False)
