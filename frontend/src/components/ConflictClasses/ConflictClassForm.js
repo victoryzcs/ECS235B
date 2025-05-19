@@ -12,6 +12,8 @@ import {
   Chip,
   Box,
   OutlinedInput,
+  FormHelperText,
+
 } from '@mui/material';
 
 function ConflictClassForm({ 
@@ -114,6 +116,8 @@ function ConflictClassForm({
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>Select the conflict classes</FormHelperText>
+
             </FormControl>
           </Grid>
           <Grid item xs={12} sx={{ mt: 2, textAlign: 'center' }}>
