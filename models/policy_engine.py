@@ -44,18 +44,15 @@ class PolicyEngine:
         self.datasets = {ds.id: ds for ds in Dataset.get_all()}
         self.conflict_classes = {cc.id: cc for cc in ConflictClass.get_all()}
         
-        self.caps = CapabilityList.load() # Loads the singleton capability list
-        if not self.caps: # Should be instantiated by .load() even if DB is empty
+        self.caps = CapabilityList.load()
+        if not self.caps:
             self.caps = CapabilityList()
-            self.caps.save() # Save a default empty one if it didn't exist
+            self.caps.save()
         
-        # Load access history
-        # Access history will be loaded into user_access_history dict and also kept on User objects
         raw_history_docs = BaseModel.get_access_history_collection().find({})
         for doc in raw_history_docs:
             entry = AccessHistoryEntry.from_dict(doc)
             self.user_access_history[entry.user_id] = entry.accessed_datasets
-            # Also update the in-memory User object if it exists
             if entry.user_id in self.users:
                 self.users[entry.user_id].access_history = entry.accessed_datasets
         
@@ -81,7 +78,7 @@ class PolicyEngine:
     def update_role(self, role_id: str, name: str = None):
         role = self.roles.get(role_id)
         if not role:
-            return None # Or raise Exception("Role not found")
+            return None
 
         updated = False
         if name is not None and role.name != name:
@@ -98,7 +95,7 @@ class PolicyEngine:
     def delete_role(self, role_id: str):
         role = self.roles.get(role_id)
         if not role:
-            return False # Or raise Exception("Role not found")
+            return False
 
         # Prevent deletion if the role is assigned to any user
         for user in self.users.values():
@@ -108,8 +105,8 @@ class PolicyEngine:
         # If a role is deleted, its permissions become meaningless with it, so they are effectively gone.
         # The Role model itself stores its permissions. Deleting the role document deletes them.
 
-        role.delete() # Assumes Role model has a delete method
-        del self.roles[role_id] # Remove from cache
+        role.delete()
+        del self.roles[role_id]
         return True
     
     def add_object(self, obj_id: str, name: str, dataset_id: str):
@@ -137,7 +134,7 @@ class PolicyEngine:
     def update_object(self, obj_id: str, name: str = None, dataset_id: str = None):
         obj = self.objects.get(obj_id)
         if not obj:
-            return None # Or raise Exception("Object not found")
+            return None
 
         updated = False
         original_dataset_id = obj.dataset
@@ -180,7 +177,7 @@ class PolicyEngine:
     def delete_object(self, obj_id: str):
         obj = self.objects.get(obj_id)
         if not obj:
-            return False # Or raise Exception("Object not found")
+            return False
 
         # 1. Remove from its dataset's list of objects
         dataset_id = obj.dataset
@@ -218,7 +215,7 @@ class PolicyEngine:
     def update_dataset(self, dataset_id: str, name: str = None, description: str = None):
         ds = self.datasets.get(dataset_id)
         if not ds:
-            return None # Or raise Exception("Dataset not found")
+            return None
 
         updated = False
         if name is not None and ds.name != name:
@@ -229,9 +226,6 @@ class PolicyEngine:
             ds.description = description
             updated = True
         
-        # Note: Managing dataset.objects list (if it contains object actual instances or full dicts)
-        # would be more complex. Currently, Dataset model seems to store object_ids.
-        # If we need to update which objects belong to a dataset, it's usually done via object creation/update.
 
         if updated:
             ds.save()
@@ -241,16 +235,11 @@ class PolicyEngine:
     def delete_dataset(self, dataset_id: str):
         ds = self.datasets.get(dataset_id)
         if not ds:
-            return False # Or raise Exception("Dataset not found")
+            return False
 
-        # Prevent deletion if the dataset contains objects
-        # This requires checking all objects in self.objects
         if any(obj.dataset == dataset_id for obj in self.objects.values()):
             raise Exception(f"Dataset {dataset_id} cannot be deleted because it contains objects. Remove objects first.")
 
-        # Also, consider implications for Conflict Classes that might reference this dataset
-        # For now, we are not cascading deletes or disassociations from conflict classes here.
-        # This might be a future enhancement or a manual step required by an admin.
         
         ds.delete()
         del self.datasets[dataset_id]
@@ -270,7 +259,7 @@ class PolicyEngine:
     def update_conflict_class(self, cc_id: str, name: str = None, dataset_ids: List[str] = None):
         cc = self.conflict_classes.get(cc_id)
         if not cc:
-            return None  # Or raise Exception("Conflict Class not found")
+            return None
 
         updated = False
         if name is not None and cc.name != name:
@@ -287,21 +276,21 @@ class PolicyEngine:
                 updated = True
 
         if updated:
-            cc.save() # Assumes ConflictClass has a save method
-            self.conflict_classes[cc.id] = cc # Update cache
+            cc.save()
+            self.conflict_classes[cc.id] = cc
         return cc
 
     def delete_conflict_class(self, cc_id: str):
         cc = self.conflict_classes.get(cc_id)
         if not cc:
-            return False # Or raise Exception("Conflict Class not found")
+            return False
 
         # Optional: Add logic to check if this conflict class is in use by any objects
         # and prevent deletion or handle accordingly.
         # For now, we will directly delete.
 
-        cc.delete() # Assumes ConflictClass has a delete method
-        del self.conflict_classes[cc_id] # Remove from cache
+        cc.delete()
+        del self.conflict_classes[cc_id]
         return True
     
     def assign_role_to_user(self, user_id: str, role_id: str):
@@ -324,7 +313,7 @@ class PolicyEngine:
             raise ValueError(f"Object {object_id} not found.")
             
         self.caps.add_permission(user_id, object_id, action)
-        self.caps.save() # Save the entire caps list document
+        self.caps.save()
         return True
     
     def record_access(self, user_id: str, object_id: str):
@@ -337,7 +326,6 @@ class PolicyEngine:
 
         dataset_id = obj.dataset
         
-        # Update in-memory cache for user_access_history
         if user_id not in self.user_access_history:
             self.user_access_history[user_id] = []
         
@@ -346,7 +334,6 @@ class PolicyEngine:
             self.user_access_history[user_id].append(dataset_id)
             needs_db_update = True
 
-        # Update user object's access history (in memory and persist)
         if dataset_id not in user.access_history:
             user.access_history.append(dataset_id)
             user.save() 
@@ -392,7 +379,7 @@ class PolicyEngine:
         if len(role.permissions) < original_length:
             role.save()
             return True
-        return False # No permission was revoked
+        return False
     
     def revoke_direct_permission(self, user_id: str, object_id: str, action: str):
         if user_id not in self.users:
@@ -403,7 +390,6 @@ class PolicyEngine:
         self.caps.remove_permission(user_id, object_id, action)
         self.caps.save()
         
-        # Optional: Warning if permission still exists via RBAC (as in original code)
         rbac_allowed, _ = self._check_rbac(user_id, object_id, action)
         if rbac_allowed:
             print(f"WARNING: Direct permission '{action}' on object '{self.objects[object_id].name}' removed for user '{self.users[user_id].name}', but permission remains via RBAC.")
@@ -429,7 +415,6 @@ class PolicyEngine:
         
         dataset_id = obj.dataset
 
-        # If object's dataset is not in any conflict class, access is allowed
         if not any(dataset_id in cc.datasets for cc in self.conflict_classes.values()):
             return True, "Dataset not in any conflict class."
         
@@ -440,7 +425,6 @@ class PolicyEngine:
                 break
         
         if not target_conflict_class:
-            # Should not happen if previous check passed, but good for safety
             return True, "Dataset not associated with a known conflict class."
 
         # Use the consistent user_access_history cache
@@ -605,13 +589,13 @@ class PolicyEngine:
         
         if updated:
             user.save()
-            self.users[user.id] = user # Update cache
+            self.users[user.id] = user
         return user
 
     def delete_user(self, user_id: str):
         user = self.users.get(user_id)
         if not user:
-            return False # Or raise Exception("User not found")
+            return False
 
         if user_id == 'admin':
             raise Exception("Cannot delete the primary admin user.")
@@ -632,19 +616,19 @@ class PolicyEngine:
         user = self.users.get(user_id)
         if not user:
             
-            if current_password_str: # only try to hash if there is something to hash
+            if current_password_str:
                 User.verify_password_util("dummy_hash_should_not_match", current_password_str)
             return False
 
         if not user.check_password(current_password_str):
             return False
 
-        if not new_password_str: # Prevent setting an empty password
+        if not new_password_str:
             raise ValueError("New password cannot be empty.")
 
         user.password_hash = hash_password_util(new_password_str)
         user.save()
-        self.users[user.id] = user # Update the in-memory cache
+        self.users[user.id] = user
         return True
 
 if __name__ == "__main__":
