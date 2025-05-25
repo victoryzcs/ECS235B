@@ -11,3 +11,5 @@ streamlit/
 
 .DS_Store
 
+frontend-2/node_modules
+frontend-rebuild/
