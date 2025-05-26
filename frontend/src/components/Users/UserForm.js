@@ -64,7 +64,7 @@ function UserForm({
   
   const auth = useAuth();
   const isManager = auth?.isManager;
-  
+  const isAdmin = auth?.isAdmin;
   useEffect(() => {
     fetchRoles();
     fetchObjects();
@@ -284,8 +284,15 @@ function UserForm({
                       <em>Select a user</em>
                     </MenuItem>
                     {users
-                    .filter(user => !user.roles.includes("admin") && !user.roles.includes("manager")).
-                    map(user => (
+                    .filter(user => {
+                      if (isAdmin) {
+                        return !user.roles.includes("admin"); // Admin can grant to managers and workers
+                      } else if (isManager) {
+                        return !user.roles.includes("admin") && !user.roles.includes("manager"); // Managers can only grant to workers
+                      }
+                      return false; // Other roles cannot grant permissions
+                    })
+                    .map(user => (
                       <MenuItem key={user._id} value={user._id}>
                         {user._id} - {user.name}
                       </MenuItem>
