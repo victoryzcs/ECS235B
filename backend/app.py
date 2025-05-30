@@ -341,8 +341,6 @@ CORS(app)
 
 def initialize_system():
     print("Initializing system data...")
-    ensure_admin_exists()
-
     PREDEFINED_ROLES = [
         {"id": "admin", "name": "Administrator"},
         {"id": "manager", "name": "Manager"},
@@ -359,6 +357,7 @@ def initialize_system():
             except Exception as e:
                 print(f"Error adding predefined role {role_data['name']}: {str(e)}")
     print("System initialization complete.")
+    ensure_admin_exists()
 
 initialize_system()
 

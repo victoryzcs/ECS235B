@@ -72,7 +72,7 @@ function UserForm({
       setUserData(prevData => ({...prevData, password: ''}));
     } else if (!isEditMode) {
     }
-  }, [isEditMode, userData]);
+  }, [isEditMode, userData, setUserData]);
   
   const fetchRoles = async () => {
     try {
