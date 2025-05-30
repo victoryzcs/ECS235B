@@ -3,9 +3,9 @@
 - [x] Implemented several components (for logic and backend)
 - [x] Implemented Flask backend
 - [x] Add more test cases under `test_models` (especially for backend)
-- [ ] Implement authentication modules (e.g., login, registration)
+- [x] Implement authentication modules (e.g., login, registration)
 - [x] Create frontend (React)
-- [ ] Finalize and polish implementation  
+- [x] Finalize and polish implementation  
 - [ ] Submit by deadline (June 6, 3:00 PM)
 
 ## Core Components
@@ -57,29 +57,67 @@ Access is granted only if all applicable checks pass.
 
 
 ## Issues
-- [ ] When a user signed up, the Users Management portal is not updated.
-- [ ] User's access history is not updated.
-- [ ] Conflict class doesn't work properly.
+- [x] When a user signed up, the Users Management portal is not updated.
+- [x] User's access history is not updated.
+- [x] Conflict class doesn't work properly.
 
-## Configuring Ports
+## Running the application
 
-### Frontend Port
+### Prerequisites
+- Python 3.8 or higher
+- MongoDB installed and running
+- Node.js and npm for the frontend
 
-The frontend development server port can be configured by modifying the `start` script in the `frontend/package.json` file.
-
-By default, it might be set to port 3000. To change it (e.g., to 3001):
-
-1. Open `frontend/package.json`.
-2. Locate the `scripts` section.
-3. Modify the `start` script. For example, to set the port to 3001:
-   ```json
-   "scripts": {
-     "start": "PORT=3001 react-scripts start",
-     // ... other scripts
-   },
+### Backend Setup
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
    ```
-4. Save the file.
-5. Restart the frontend development server if it's running for the changes to take effect.
 
-Alternatively, for `react-scripts` based projects, you can create a `.env` file in the `frontend` directory and add the line `PORT=your_desired_port` (e.g., `PORT=3001`). However, ensure this file is not overly restricted by `.gitignore` rules if you choose this method for port configuration specifically.
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Set environment variables:
+   ```bash
+   export SECRET_KEY=your-secret-key
+   export MONGODB_URI=mongodb://localhost:27017/your-database
+   ```
+
+5. Run the Flask server:
+   ```bash
+   python app.py
+   ```
+   The backend will run on http://localhost:8080
+
+### Frontend Setup
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Run the development server:
+   ```bash
+   npm start
+   ```
+   The frontend will run on http://localhost:3000
+
+### Default Admin Account
+On first run, the system creates a default admin account:
+- Username: admin
+- Password: admin123
+
+It's recommended to change these credentials after first login.
     
